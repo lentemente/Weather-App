@@ -197,7 +197,7 @@
             }
             /* Make left and right panels within the container take equal width */
             .left-panel {
-                flex-grow: 3; /* Map section three times wider (2:1 ratio) */
+                flex-grow: 2; /* Map section twice wider */
                 /* Reset padding from default p-4 to match new container padding */
                 padding: 0; /* Remove internal padding from panels as parent .container has it */
             }
@@ -206,9 +206,11 @@
                 padding: 0; /* Remove internal padding from panels as parent .container has it */
             }
             /* Specific padding for .chart-panel-container and #chartsWrapper on desktop */
-            .chart-panel-container,
+            .chart-panel-container {
+                padding: 20px; /* Apply general padding for horizontal and vertical */
+            }
             #chartsWrapper {
-                padding: 20px; /* Larger padding for these sections on desktop */
+                padding: 20px 0; /* Keep top/bottom padding, remove left/right */
             }
             /* Charts wrapper to display its children side-by-side */
             #chartsWrapper {
@@ -810,7 +812,7 @@
 
             if (filteredValues.length === 0) {
                 ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
-                ctx.font = '14px Inter';
+                ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
                 ctx.textAlign = 'center';
                 ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
                 console.warn(`No filtered data for ${label} chart.`);
@@ -880,7 +882,7 @@
             ctx.stroke();
 
             ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
-            ctx.font = '12px Inter';
+            ctx.font = '12px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
             ctx.textAlign = 'center';
 
             // Draw X-axis labels (hours) - show every 3rd hour
@@ -1016,7 +1018,7 @@
 
             if (allValues.length === 0) {
                 ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
-                ctx.font = '14px Inter';
+                ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
                 ctx.textAlign = 'center';
                 ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
                 chartDataPoints[canvasId] = [];
@@ -1079,7 +1081,7 @@
             ctx.stroke();
 
             ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
-            ctx.font = '12px Inter';
+            ctx.font = '12px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
             ctx.textAlign = 'center';
 
             // Draw X-axis labels (dates)
@@ -1215,7 +1217,7 @@
 
             let content = `
                 <div class="weather-card">
-                    <h3 class="text-xl font-bold mb-2" style="color: #274C77;">Weather for ${formatToDDMMYY(date)}</h3>
+                    <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">Weather for ${formatToDDMMYY(date)}</h3>
                     <p class="text-lg"><span class="font-semibold">Max Temperature:</span> ${maxTemp != null ? maxTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_max : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Min Temperature:</span> ${minTemp != null ? minTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_min : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Rainfall:</span> ${rainSum != null ? rainSum.toFixed(1) + ' ' + dailyUnits.rain_sum : 'N/A'}</p>
@@ -1313,7 +1315,7 @@
                         canvas.width = canvas.offsetWidth;
                         canvas.height = canvas.offsetHeight;
                         ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
-                        ctx.font = '14px Inter';
+                        ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
                         ctx.textAlign = 'center';
                         ctx.fillText(`No ${hourlyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
                     }
@@ -1404,7 +1406,7 @@
                         canvas.width = canvas.offsetWidth;
                         canvas.height = canvas.offsetHeight;
                         ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
-                        ctx.font = '14px Inter';
+                        ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
                         ctx.textAlign = 'center';
                         ctx.fillText(`No ${dailyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
                     }
