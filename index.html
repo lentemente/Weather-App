@@ -500,10 +500,12 @@
                 if (data.display_name) {
                     return data.display_name;
                 } else {
+                    // Use toFixed(2) only for display when address is not found
                     return `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)} (Address not found)`;
                 }
             } catch (error) {
                 console.error("Error fetching address from Nominatim:", error);
+                // Use toFixed(2) only for display when lookup fails
                 return `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)} (Lookup failed)`;
             }
         }
@@ -527,9 +529,9 @@
 
         // Function to handle map clicks
         async function onMapClick(e) { // Made async to await getStreetAddress
-            // Round coordinates to 2 decimal places immediately when selected
-            selectedLat = parseFloat(e.latlng.lat.toFixed(2));
-            selectedLon = parseFloat(e.latlng.lng.toFixed(2));
+            // Fix: Removed toFixed(2) here to use full precision coordinates for accuracy
+            selectedLat = e.latlng.lat;
+            selectedLon = e.latlng.lng;
 
             // Get the street address
             selectedAddress = await getStreetAddress(selectedLat, selectedLon);
@@ -539,7 +541,7 @@
                 map.removeLayer(marker);
             }
 
-            // Add a new marker at the clicked location
+            // Add a new marker at the clicked location using the precise coordinates
             marker = L.marker([selectedLat, selectedLon]).addTo(map)
                 .bindPopup(`Selected Location:<br>${selectedAddress}`) // Display address in popup
                 .openPopup();
@@ -742,7 +744,7 @@
                 } else {
                     minValue = 0;
                 }
-                yAxisIncrement = 20; // Increment by 20 for temperature
+                yAxisIncrement = 5; // Changed to 5 for temperature
             } else if (dataKey.includes('wind_gusts')) { // Applies to wind_gusts_10m
                 // Round max up to nearest 20
                 maxValue = Math.ceil(maxValue / 20) * 20;
@@ -937,7 +939,7 @@
                 } else {
                     minValue = 0;
                 }
-                yAxisIncrement = 20; // Increment by 20 for temperature
+                yAxisIncrement = 5; // Changed to 5 for temperature
             } else if (dataKeyPrimary.includes('wind_gusts') || (dataKeySecondary && dataKeySecondary.includes('wind_gusts'))) { // Applies to wind_gusts_10m_max
                 // Round max up to nearest 20
                 maxValue = Math.ceil(maxValue / 20) * 20;
