@@ -196,9 +196,13 @@
                 padding: 20px; /* Larger internal padding for the top section on desktop */
             }
             /* Make left and right panels within the container take equal width */
-            .left-panel, .right-panel {
-                width: 50%;
+            .left-panel {
+                flex-grow: 3; /* Map section 1.5 times wider */
                 /* Reset padding from default p-4 to match new container padding */
+                padding: 0; /* Remove internal padding from panels as parent .container has it */
+            }
+            .right-panel {
+                flex-grow: 2; /* Weather info section */
                 padding: 0; /* Remove internal padding from panels as parent .container has it */
             }
             /* Specific padding for .chart-panel-container and #chartsWrapper on desktop */
@@ -214,7 +218,7 @@
             /* Individual chart panels inside chartsWrapper */
             #hourlyChartsPanelContainer,
             #dailyHistoryChartsPanelContainer {
-                width: calc(50% + 30px); /* Each takes half width of wrapper + 30px */
+                width: calc(50% + 80px); /* Each takes half width of wrapper + 80px (30px + 50px) */
                 padding: 15px; /* Keep padding for these nested panels */
                 margin-top: 0; /* Remove specific margin as gap handles it */
                 margin-bottom: 0;
@@ -238,7 +242,7 @@
 
             <!-- City Selection Dropdown -->
             <div class="mb-2">
-                <label for="citySelect" class="block text-sm font-medium" style="color: #274C77;">Select City:</label>
+                <label for="citySelect" class="block text-sm font-medium" style="color: #274C77;">Select Location:</label>
                 <select id="citySelect" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
                     <option value="dunedin">Dunedin</option>
                     <option value="alexandra">Alexandra</option>
