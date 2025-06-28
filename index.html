@@ -25,7 +25,7 @@
     <style>
         /* Custom styles for the map container */
         #map {
-            height: 550px; /* Increased height for the map to 550px */
+            height: 570px; /* Increased height for the map to 570px */
             width: 100%;
             border-radius: 0.5rem; /* Rounded corners */
             cursor: default !important; /* Change map cursor to default arrow */
@@ -671,7 +671,7 @@
             // Add an initial "Select a city" option
             const defaultOption = document.createElement('option');
             defaultOption.value = '';
-            defaultOption.textContent = 'Select a city from the list';
+            defaultOption.textContent = 'Select a location from the list'; // Updated text here
             defaultOption.disabled = true;
             defaultOption.selected = true; // Make it the default selected
             citySelect.appendChild(defaultOption);
@@ -716,6 +716,43 @@
             weatherDateInput.setAttribute('max', formattedDate);
         }
 
+        // --- Weather Code to Description Mapping ---
+        const weatherCodeDescriptions = {
+            0: "Clear sky",
+            1: "Mainly clear",
+            2: "Partly cloudy",
+            3: "Overcast",
+            45: "Fog",
+            48: "Depositing rime fog",
+            51: "Drizzle: Light",
+            53: "Drizzle: Moderate",
+            55: "Drizzle: Dense",
+            56: "Freezing Drizzle: Light",
+            57: "Freezing Drizzle: Dense",
+            61: "Rain: Slight",
+            63: "Rain: Moderate",
+            65: "Rain: Heavy",
+            66: "Freezing Rain: Light",
+            67: "Freezing Rain: Heavy",
+            71: "Snow fall: Slight",
+            73: "Snow fall: Moderate",
+            75: "Snow fall: Heavy",
+            77: "Snow grains",
+            80: "Rain showers: Slight",
+            81: "Rain showers: Moderate",
+            82: "Rain showers: Violent",
+            85: "Snow showers: Slight",
+            86: "Snow showers: Heavy",
+            95: "Thunderstorm: Slight or moderate",
+            96: "Thunderstorm with slight hail",
+            99: "Thunderstorm with heavy hail"
+        };
+
+        function getWeatherCondition(weatherCode) {
+            return weatherCodeDescriptions[weatherCode] || "N/A";
+        }
+
+
         // --- Fetch Weather Data from Open-Meteo ---
         async function fetchWeather() {
             if (!selectedLat || !selectedLon || !selectedDate) {
@@ -739,7 +776,8 @@
 
 
             const hourlyVariables = 'temperature_2m,rain,snowfall,wind_gusts_10m';
-            const dailyVariables = 'temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum,wind_gusts_10m_max';
+            // Add weather_code to daily variables
+            const dailyVariables = 'temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum,wind_gusts_10m_max,weather_code';
 
             // Always use the archive API for current day data (historical observations only)
             const currentDayApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&daily=${dailyVariables}&hourly=${hourlyVariables}&timezone=Pacific/Auckland&start_date=${selectedDate}&end_date=${selectedDate}`;
@@ -1315,6 +1353,8 @@
             const rainSum = getDailyValue(daily, 'rain_sum', 0);
             const snowfallSum = getDailyValue(daily, 'snowfall_sum', 0);
             const windGustsMax = getDailyValue(daily, 'wind_gusts_10m_max', 0);
+            const weatherCode = getDailyValue(daily, 'weather_code', 0); // Get weather code
+            const weatherCondition = getWeatherCondition(weatherCode); // Get weather condition description
 
             let content = `
                 <div class="weather-card">
@@ -1324,6 +1364,7 @@
                     <p class="text-lg"><span class="font-semibold">Rainfall:</span> ${rainSum != null ? rainSum.toFixed(1) + ' ' + dailyUnits.rain_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Snowfall:</span> ${snowfallSum != null ? snowfallSum.toFixed(1) + ' ' + dailyUnits.snowfall_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Max Wind Gusts:</span> ${windGustsMax != null ? windGustsMax.toFixed(1) + ' ' + dailyUnits.wind_gusts_10m_max : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Weather Condition:</span> ${weatherCondition}</p>
                     <p class="text-sm mt-2" style="color: #8B8C89;">Data provided by Open-Meteo.com</p>
                 </div>
             `;
@@ -1341,7 +1382,7 @@
             for (const range of dateRanges) {
                 // Check if the click X coordinate falls within the date's zone
                 if (mousePos.x >= range.xMin && mousePos.x <= range.xMax) {
-                    const clickedDate = range.time.split('T')[0]; // Extract YYYY-MM-DD
+                    const clickedDate = range.time.split('T')[0]; // ExtractINTRESOURCE-MM-DD
                     
                     // Update the date input and global selectedDate
                     weatherDateInput.value = clickedDate;
