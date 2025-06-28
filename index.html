@@ -316,7 +316,10 @@
 
         <!-- Daily Historical Charts Panel Container -->
         <div id="dailyHistoryChartsPanelContainer" class="chart-panel-container">
-            <h3 class="text-xl font-bold text-center mb-1" style="color: #274C77;">30 Day Historical Data Charts</h3>
+            <!-- Updated h3 with a span for dynamic date range -->
+            <h3 class="text-xl font-bold text-center mb-1" style="color: #274C77;">
+                30 Day Historical Data Charts <span id="dailyChartDateRange" class="text-base font-normal"></span>
+            </h3>
             <div id="dailyTemperatureChartContainer" class="chart-container">
                 <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Temperature (Min/Max, °C)</h4>
                 <canvas id="dailyTemperatureChart"></canvas>
@@ -382,6 +385,7 @@
         const selectedDateDisplay = document.getElementById('selectedDateDisplay');
         const weatherResultsDiv = document.getElementById('weatherResults');
         const loadingIndicator = document.getElementById('loadingIndicator');
+        const dailyChartDateRangeSpan = document.getElementById('dailyChartDateRange'); // New span for date range
 
         // Chart Panel elements
         const hourlyChartsPanelContainer = document.getElementById('hourlyChartsPanelContainer');
@@ -405,7 +409,7 @@
             const dateObj = new Date(dateString);
             const day = String(dateObj.getDate()).padStart(2, '0');
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const year = String(dateObj.getFullYear()).slice(-2); // Get last two digits of the year
+            const year = String(dateObj.getFullYear()); // Get full year for the title
             return `${day}/${month}/${year}`;
         }
 
@@ -680,18 +684,25 @@
             fetchWeather();
         });
 
-        // Set default date to 2 days before current date
+        // Function to set default date to 2 days before current date and restrict future dates
         function setDefaultDate() {
-            const twoDaysAgo = new Date();
-            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2); // Subtract 2 days
-            const year = twoDaysAgo.getFullYear();
-            const month = String(twoDaysAgo.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-            const day = String(twoDaysAgo.getDate()).padStart(2, '0');
+            const today = new Date();
+            // Calculate the maximum selectable date (2 days ago)
+            const maxSelectableDate = new Date();
+            maxSelectableDate.setDate(today.getDate() - 2); 
+
+            const year = maxSelectableDate.getFullYear();
+            const month = String(maxSelectableDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(maxSelectableDate.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
+
+            // Set the default value of the input to the last selectable day
             weatherDateInput.value = formattedDate;
             selectedDate = formattedDate;
-            // Use helper function to format date for display
             selectedDateDisplay.textContent = formatToDDMMYY(formattedDate);
+
+            // Set the max attribute for the date input to restrict future selections
+            weatherDateInput.setAttribute('max', formattedDate);
         }
 
         // --- Fetch Weather Data from Open-Meteo ---
@@ -703,6 +714,7 @@
                 </div>`;
                 hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
+                dailyChartDateRangeSpan.textContent = ''; // Clear date range
                 return;
             }
 
@@ -712,6 +724,7 @@
             // Initially hide chart panels, will be shown if data is successful
             hourlyChartsPanelContainer.style.display = 'none';
             dailyHistoryChartsPanelContainer.style.display = 'none';
+            dailyChartDateRangeSpan.textContent = ''; // Clear date range
 
 
             const hourlyVariables = 'temperature_2m,rain,snowfall,wind_gusts_10m';
@@ -792,6 +805,16 @@
 
                 displayWeatherResults(currentDayData); // Use currentDayData for the main summary
 
+                // Update the 30-day historical chart title with the actual date range
+                if (currentDailyHistoryData && currentDailyHistoryData.time && currentDailyHistoryData.time.length > 0) {
+                    const firstDate = currentDailyHistoryData.time[0];
+                    const lastDate = currentDailyHistoryData.time[currentDailyHistoryData.time.length - 1];
+                    dailyChartDateRangeSpan.textContent = `(${formatToDDMMYY(firstDate)} - ${formatToDDMMYY(lastDate)})`;
+                } else {
+                    dailyChartDateRangeSpan.textContent = '';
+                }
+
+
                 // Display hourly charts if data is available
                 if (currentHourlyData && currentHourlyData.time && currentHourlyData.time.length > 0) {
                     // Make the parent chartsWrapper visible
@@ -817,6 +840,7 @@
                 document.getElementById('chartsWrapper').style.display = 'none';
                 hourlyChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
+                dailyChartDateRangeSpan.textContent = ''; // Clear date range
             } finally {
                 loadingIndicator.style.display = 'none';
             }
@@ -1359,4 +1383,199 @@
 
             // --- Handle Hourly Charts ---
             const allHourlyChartContainers = hourlyChartsPanelContainer.querySelectorAll('.chart-container');
-            allHourlyCh
+            allHourlyChartContainers.forEach(container => {
+                container.style.display = 'none';
+            });
+
+            const selectedHourlyChartContainer = document.getElementById(hourlyChartIdToShow);
+            if (selectedHourlyChartContainer) {
+                selectedHourlyChartContainer.style.display = 'block';
+
+                let hourlyChartType;
+                let hourlyLabel;
+                let hourlyUnit;
+                let hourlyColor;
+                let hourlyDataKey;
+
+                switch (hourlyChartIdToShow) {
+                    case 'temperatureChartContainer':
+                        hourlyChartType = 'line';
+                        hourlyLabel = 'Hourly Temperature';
+                        hourlyUnit = currentHourlyUnits.temperature_2m;
+                        hourlyColor = '#274C77'; /* Updated to new palette (dark blue) */
+                        hourlyDataKey = 'temperature_2m';
+                        break;
+                    case 'rainChartContainer':
+                        hourlyChartType = 'bar';
+                        hourlyLabel = 'Hourly Rainfall';
+                        hourlyUnit = currentHourlyUnits.rain;
+                        hourlyColor = '#6096BA'; /* Updated to new palette (medium blue) */
+                        hourlyDataKey = 'rain';
+                        break;
+                    case 'snowfallChartContainer':
+                        hourlyChartType = 'bar';
+                        hourlyLabel = 'Hourly Snowfall'; // Updated here
+                        hourlyUnit = currentHourlyUnits.snowfall;
+                        hourlyColor = '#A3CEF1'; /* Updated to new palette (light blue) */
+                        hourlyDataKey = 'snowfall';
+                        break;
+                    case 'windGustsChartContainer':
+                        hourlyChartType = 'bar';
+                        hourlyLabel = 'Hourly Wind Gusts'; // Updated here
+                        hourlyUnit = currentHourlyUnits.wind_gusts_10m;
+                        hourlyColor = '#6096BA'; /* Updated to new palette (medium blue) */
+                        hourlyDataKey = 'wind_gusts_10m';
+                        break;
+                    default:
+                        console.warn(`Unknown hourly chart ID: ${hourlyChartIdToShow}`);
+                        return;
+                }
+
+                if (currentHourlyData && currentHourlyData.time && currentHourlyData[hourlyDataKey]) {
+                    setTimeout(() => {
+                        drawHourlyChart(
+                            hourlyChartIdToShow.replace('Container', ''),
+                            currentHourlyData.time,
+                            currentHourlyData[hourlyDataKey],
+                            hourlyLabel,
+                            hourlyUnit,
+                            hourlyColor,
+                            hourlyChartType,
+                            hourlyDataKey
+                        );
+                    }, 200);
+                } else {
+                    console.warn(`Missing hourly data for ${hourlyDataKey}. Cannot draw chart.`);
+                    const canvas = document.getElementById(hourlyChartIdToShow.replace('Container', ''));
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.width = canvas.offsetWidth;
+                        canvas.height = canvas.offsetHeight;
+                        ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
+                        ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`No ${hourlyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
+                    }
+                }
+            }
+
+            // --- Handle Daily History Charts ---
+            const allDailyHistoryChartContainers = dailyHistoryChartsPanelContainer.querySelectorAll('.chart-container');
+            allDailyHistoryChartContainers.forEach(container => {
+                container.style.display = 'none';
+            });
+
+            const selectedDailyChartContainer = document.getElementById(dailyChartIdToShow);
+            if (selectedDailyChartContainer) {
+                selectedDailyChartContainer.style.display = 'block';
+
+                let dailyLabel;
+                let dailyUnitPrimary;
+                let dailyColorPrimary;
+                let dailyDataKeyPrimary;
+                let dailyChartType;
+                let dailyValuesSecondary = null;
+                let dailyUnitSecondary = null;
+                let dailyColorSecondary = null;
+                let dailyDataKeySecondary = ''; 
+
+                switch (dailyChartIdToShow) {
+                    case 'dailyTemperatureChartContainer':
+                        dailyLabel = 'Daily Temperature (Min/Max)';
+                        dailyUnitPrimary = currentDailyHistoryUnits.temperature_2m_max;
+                        dailyColorPrimary = '#274C77'; /* Updated to new palette (dark blue) */
+                        dailyDataKeyPrimary = 'temperature_2m_max';
+                        dailyChartType = 'line';
+                        dailyValuesSecondary = currentDailyHistoryData.temperature_2m_min;
+                        dailyUnitSecondary = currentDailyHistoryUnits.temperature_2m_min;
+                        dailyColorSecondary = '#6096BA'; /* Updated to new palette (medium blue) */
+                        dailyDataKeySecondary = 'temperature_2m_min';
+                        break;
+                    case 'dailyRainChartContainer':
+                        dailyLabel = 'Daily Rainfall Sum';
+                        dailyUnitPrimary = currentDailyHistoryUnits.rain_sum;
+                        dailyColorPrimary = '#6096BA'; /* Updated to new palette (medium blue) */
+                        dailyDataKeyPrimary = 'rain_sum';
+                        dailyChartType = 'bar';
+                        break;
+                    case 'dailySnowfallChartContainer':
+                        dailyLabel = 'Daily Snowfall Sum';
+                        dailyUnitPrimary = currentDailyHistoryUnits.snowfall_sum;
+                        dailyColorPrimary = '#A3CEF1'; /* Updated to new palette (light blue) */
+                        dailyDataKeyPrimary = 'snowfall_sum';
+                        dailyChartType = 'bar';
+                        break;
+                    case 'dailyWindGustsChartContainer':
+                        dailyLabel = 'Daily Max Wind Gusts';
+                        dailyUnitPrimary = currentDailyHistoryUnits.wind_gusts_10m_max;
+                        dailyColorPrimary = '#6096BA'; /* Updated to new palette (medium blue) */
+                        dailyDataKeyPrimary = 'wind_gusts_10m_max';
+                        dailyChartType = 'bar';
+                        break;
+                    default:
+                        console.warn(`Unknown daily history chart ID: ${dailyChartIdToShow}`);
+                        return;
+                }
+
+                if (currentDailyHistoryData && currentDailyHistoryData.time && currentDailyHistoryData[dailyDataKeyPrimary]) {
+                     setTimeout(() => {
+                        drawDailyChart(
+                            dailyChartIdToShow.replace('Container', ''),
+                            currentDailyHistoryData.time,
+                            currentDailyHistoryData[dailyDataKeyPrimary],
+                            dailyLabel,
+                            dailyUnitPrimary,
+                            dailyColorPrimary,
+                            dailyChartType,
+                            dailyValuesSecondary,
+                            dailyUnitSecondary,
+                            dailyColorSecondary,
+                            dailyDataKeyPrimary, // Pass primary data key
+                            dailyDataKeySecondary // Pass secondary data key
+                        );
+                     }, 200);
+                } else {
+                    console.warn(`Missing daily history data for ${dailyDataKeyPrimary}. Cannot draw chart.`);
+                    const canvas = document.getElementById(dailyChartIdToShow.replace('Container', ''));
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.width = canvas.offsetWidth;
+                        canvas.height = canvas.offsetHeight;
+                        ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
+                        ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`No ${dailyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
+                    }
+                }
+            }
+        }
+
+
+        // Add event listeners to main chart navigation buttons
+        mainChartNav.addEventListener('click', (event) => {
+            const targetButton = event.target.closest('.chart-nav-button');
+            if (targetButton && targetButton.dataset.hourlyChart && targetButton.dataset.dailyChart) {
+                toggleChartsByParameter(targetButton.dataset.hourlyChart, targetButton.dataset.dailyChart);
+            }
+        });
+
+
+        // --- Initialize the application after all HTML and scripts are parsed ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // These can be initialized as soon as the DOM is ready
+            populateCityDropdown(); // Populate and sort the dropdown
+            setDefaultDate();
+            createTooltip(); // Create tooltip div once DOM is loaded
+            setupChartTooltips(); // Setup tooltips once JS is ready
+            setupDailyChartClickListeners(); // Setup click listeners for daily charts
+        });
+
+        // Initialize map on window.onload to ensure Leaflet library (L) is fully loaded
+        window.onload = () => {
+            initMap();
+        };
+    </script>
+</body>
+</html>
