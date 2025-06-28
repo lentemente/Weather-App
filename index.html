@@ -618,4 +618,745 @@
             map.setView([selectedLat, selectedLon], 9);
 
             // Update the display in the right panel
-            selectedLocationDisplay.textContent = selectedAddre
+            selectedLocationDisplay.textContent = selectedAddress;
+
+            // Attempt to fetch weather if both date and location are selected
+            fetchWeather();
+        }
+
+
+        // Function to handle map clicks
+        function onMapClick(e) {
+            handleLocationSelection(e.latlng.lat, e.latlng.lng);
+        }
+
+        // Function to select a city from the predefined list
+        async function selectCity(cityKey) {
+            const city = cities[cityKey];
+            if (city) {
+                // Update the dropdown selection
+                citySelect.value = cityKey;
+                // Use the handleLocationSelection function to update map and fetch weather
+                await handleLocationSelection(city.lat, city.lon, city.name);
+            } else {
+                console.warn("Selected city not found:", cityKey);
+            }
+        }
+
+        // Event listener for city dropdown change
+        citySelect.addEventListener('change', (event) => {
+            selectCity(event.target.value);
+        });
+
+        // Function to populate and sort the city dropdown
+        function populateCityDropdown() {
+            // Convert the cities object into an array of objects for sorting
+            const sortedCities = Object.keys(cities).map(key => ({
+                key: key,
+                name: cities[key].name
+            })).sort((a, b) => a.name.localeCompare(b.name));
+
+            // Clear existing options
+            citySelect.innerHTML = '';
+
+            // Add sorted options to the dropdown
+            sortedCities.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.key;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+
+            // Set default selected city after populating
+            citySelect.value = 'dunedin'; // Keep Dunedin as the initial default selected city
+        }
+
+        // --- Date Input Handling ---
+        weatherDateInput.addEventListener('change', (event) => {
+            selectedDate = event.target.value;
+            // Use helper function to format date for display
+            selectedDateDisplay.textContent = selectedDate ? formatToDDMMYY(selectedDate) : 'No date selected';
+            // Attempt to fetch weather if both date and location are selected
+            fetchWeather();
+        });
+
+        // Set default date to 2 days before current date
+        function setDefaultDate() {
+            const twoDaysAgo = new Date();
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2); // Subtract 2 days
+            const year = twoDaysAgo.getFullYear();
+            const month = String(twoDaysAgo.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(twoDaysAgo.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+            weatherDateInput.value = formattedDate;
+            selectedDate = formattedDate;
+            // Use helper function to format date for display
+            selectedDateDisplay.textContent = formatToDDMMYY(formattedDate);
+        }
+
+        // --- Fetch Weather Data from Open-Meteo ---
+        async function fetchWeather() {
+            if (!selectedLat || !selectedLon || !selectedDate) {
+                // Not enough information to fetch weather
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                    <p class="font-semibold">Please select both a location on the map/city dropdown and a date.</p>
+                </div>`;
+                hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
+                dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
+                return;
+            }
+
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            weatherResultsDiv.innerHTML = ''; // Clear previous results
+            // Initially hide chart panels, will be shown if data is successful
+            hourlyChartsPanelContainer.style.display = 'none';
+            dailyHistoryChartsPanelContainer.style.display = 'none';
+
+
+            const hourlyVariables = 'temperature_2m,rain,snowfall,wind_gusts_10m';
+            const dailyVariables = 'temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum,wind_gusts_10m_max';
+
+            // Always use the archive API for current day data (historical observations only)
+            const currentDayApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&daily=${dailyVariables}&hourly=${hourlyVariables}&timezone=Pacific/Auckland&start_date=${selectedDate}&end_date=${selectedDate}`;
+
+
+            // Determine API URL for 30 days of historical daily data
+            let historicalEndDate;
+            let historicalStartDate;
+
+            // Since we are only using historical data, the end date for the 30-day range
+            // will be the selected date, and the start date will be 29 days prior.
+            historicalEndDate = selectedDate;
+            const historicalStartObj = new Date(historicalEndDate);
+            historicalStartObj.setDate(historicalStartObj.getDate() - 29); // Go back 29 days for a 30-day range
+            historicalStartDate = historicalStartObj.toISOString().split('T')[0];
+
+            // Always use the archive API for 30-day historical data
+            historicalDailyApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&daily=${dailyVariables}&timezone=Pacific/Auckland&start_date=${historicalStartDate}&end_date=${historicalEndDate}`;
+
+
+            console.log("Fetching current day weather data from:", currentDayApiUrl);
+            console.log("Fetching 30-day historical daily data from:", historicalDailyApiUrl);
+
+
+            try {
+                const [currentDayResponse, historicalDailyResponse] = await Promise.all([
+                    fetch(currentDayApiUrl),
+                    fetch(historicalDailyApiUrl)
+                ]);
+
+                if (!currentDayResponse.ok) throw new Error(`Current day data HTTP error! status: ${currentDayResponse.status}`);
+                if (!historicalDailyResponse.ok) throw new Error(`30-day historical data HTTP error! status: ${historicalDailyResponse.status}`);
+
+                const currentDayData = await currentDayResponse.json();
+                const historicalDailyData = await historicalDailyResponse.json();
+
+                console.log("Current day data received:", currentDayData);
+                console.log("30-day historical daily data received:", historicalDailyData);
+
+
+                // Filter hourly data to only include the selected date
+                const filteredHourlyTimes = [];
+                const filteredHourlyTemp = [];
+                const filteredHourlyRain = [];
+                const filteredHourlySnowfall = [];
+                const filteredHourlyWindGusts = [];
+
+                if (currentDayData.hourly && currentDayData.hourly.time) {
+                    currentDayData.hourly.time.forEach((timeStr, index) => {
+                        const dateOnly = timeStr.split('T')[0];
+                        if (dateOnly === selectedDate) {
+                            filteredHourlyTimes.push(timeStr);
+                            filteredHourlyTemp.push(currentDayData.hourly.temperature_2m ? currentDayData.hourly.temperature_2m[index] : null);
+                            filteredHourlyRain.push(currentDayData.hourly.rain ? currentDayData.hourly.rain[index] : null);
+                            filteredHourlySnowfall.push(currentDayData.hourly.snowfall ? currentDayData.hourly.snowfall[index] : null);
+                            filteredHourlyWindGusts.push(currentDayData.hourly.wind_gusts_10m ? currentDayData.hourly.wind_gusts_10m[index] : null);
+                        }
+                    });
+                }
+
+                currentHourlyData = {
+                    time: filteredHourlyTimes,
+                    temperature_2m: filteredHourlyTemp,
+                    rain: filteredHourlyRain,
+                    snowfall: filteredHourlySnowfall,
+                    wind_gusts_10m: filteredHourlyWindGusts
+                };
+                currentHourlyUnits = currentDayData.hourly_units;
+
+                // Store historical daily data and units (no change needed here as it's always archive)
+                currentDailyHistoryData = historicalDailyData.daily;
+                currentDailyHistoryUnits = historicalDailyData.daily_units;
+
+
+                displayWeatherResults(currentDayData); // Use currentDayData for the main summary
+
+                // Display hourly charts if data is available
+                if (currentHourlyData && currentHourlyData.time && currentHourlyData.time.length > 0) {
+                    // Make the parent chartsWrapper visible
+                    document.getElementById('chartsWrapper').style.display = 'flex';
+                    // Make both chart panel containers visible as flex to allow side-by-side
+                    hourlyChartsPanelContainer.style.display = 'flex';
+                    dailyHistoryChartsPanelContainer.style.display = 'flex';
+
+                    // Display default charts
+                    toggleChartsByParameter('temperatureChartContainer', 'dailyTemperatureChartContainer');
+                } else {
+                    document.getElementById('chartsWrapper').style.display = 'none';
+                    hourlyChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
+                    dailyHistoryChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
+                }
+
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                    <p class="font-semibold">Error fetching weather data:</p>
+                    <p>${error.message}. Please try again or select a different date/location.</p>
+                </div>`;
+                document.getElementById('chartsWrapper').style.display = 'none';
+                hourlyChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
+                dailyHistoryChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Helper function for safe access to daily values
+        function getDailyValue(dailyDataObj, key, index) {
+            if (dailyDataObj && dailyDataObj[key] && dailyDataObj[key][index] !== null && dailyDataObj[key][index] !== undefined) {
+                return dailyDataObj[key][index];
+            }
+            return undefined; // Return undefined if data is not available
+        }
+
+        // --- Function to draw a chart on a canvas (can be bar or line) ---
+        function drawHourlyChart(canvasId, hourlyTimes, hourlyValues, label, unit, color, chartType = 'bar', dataKey) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error(`Canvas element with ID '${canvasId}' not found.`);
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+
+            // Set canvas size for crisp rendering (important for responsive canvas)
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            console.log(`Drawing chart: ${canvasId} (Type: ${chartType})`);
+            console.log(`Canvas dimensions for ${canvasId}: Width=${canvas.width}, Height=${canvas.height}`);
+
+
+            // Define individual paddings for drawing area
+            const paddingLeft = 60; // Ample space for Y-axis labels
+            const paddingRight = 20; // Reduced for more chart width
+            const paddingTop = 20; // Padding at the top of the chart area
+            const paddingBottom = 45; // Padding at the bottom for X-axis labels
+
+            const chartXStart = paddingLeft;
+            const chartYStart = paddingTop;
+            const chartWidth = canvas.width - paddingLeft - paddingRight;
+            const chartHeight = canvas.height - paddingTop - paddingBottom;
+
+            // Filter out null/undefined values for charting, and check if any valid data remains
+            const filteredValues = hourlyValues ? hourlyValues.filter(val => val !== null && val !== undefined) : [];
+
+            if (filteredValues.length === 0) {
+                ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
+                ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+                ctx.textAlign = 'center';
+                ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
+                console.warn(`No filtered data for ${label} chart.`);
+                // Clear any stored data points for this canvas if no data
+                chartDataPoints[canvasId] = { points: [], dateRanges: [] }; // Ensure empty object
+                return;
+            }
+
+            // Find min/max values for scaling
+            let minValue = Math.min(...filteredValues);
+            let maxValue = Math.max(...filteredValues);
+
+            let yAxisIncrement = 1; // Default increment
+
+            // Apply standardized max values and ensure min is not above zero for non-temp
+            if (dataKey.includes('temperature')) { // Applies to temperature_2m
+                // Round max up to nearest 5
+                maxValue = Math.ceil(maxValue / 5) * 5;
+                // Round min down to nearest 5 for negative, else 0
+                if (minValue < 0) {
+                    minValue = Math.floor(minValue / 5) * 5;
+                } else {
+                    minValue = 0;
+                }
+                yAxisIncrement = 5; // Changed to 5 for temperature
+            } else if (dataKey.includes('wind_gusts')) { // Applies to wind_gusts_10m
+                // Define increments based on max value for better scaling
+                if (maxValue <= 20) {
+                    yAxisIncrement = 5;
+                    maxValue = Math.ceil(maxValue / 5) * 5;
+                } else if (maxValue <= 50) {
+                    yAxisIncrement = 10;
+                    maxValue = Math.ceil(maxValue / 10) * 10;
+                } else {
+                    yAxisIncrement = 25;
+                    maxValue = Math.ceil(maxValue / 25) * 25;
+                }
+                minValue = 0; // Wind speed cannot be negative
+            } else if (dataKey.includes('rain')) { // Applies to rain
+                maxValue = Math.ceil(maxValue / 2) * 2; // Round up to nearest 2
+                minValue = 0;
+                yAxisIncrement = 2; // Increment by 2
+            } else if (dataKey.includes('snowfall')) { // Applies to snowfall
+                maxValue = Math.ceil(maxValue / 2) * 2; // Round up to nearest 2
+                minValue = 0;
+                yAxisIncrement = 2; // Increment by 2
+            }
+            
+            // Adjust maxValue slightly if it's the same as minValue to avoid division by zero for scaling
+            if (maxValue === minValue) {
+                maxValue = minValue + 1; // Give it a small range if all values are identical
+            }
+            const valueRange = maxValue - minValue;
+            console.log(`Min/Max/Range for ${label}: ${minValue}, ${maxValue}, ${valueRange}`);
+
+
+            // Draw x-axis (time) and y-axis (values)
+            ctx.beginPath();
+            ctx.strokeStyle = '#8B8C89'; /* Updated to new palette (gray) */
+            ctx.lineWidth = 1;
+            // X-axis
+            ctx.moveTo(chartXStart, chartYStart + chartHeight);
+            ctx.lineTo(chartXStart + chartWidth, chartYStart + chartHeight);
+            // Y-axis
+            ctx.moveTo(chartXStart, chartYStart);
+            ctx.lineTo(chartXStart, chartYStart + chartHeight);
+            ctx.stroke();
+
+            ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
+            ctx.font = '12px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+            ctx.textAlign = 'center';
+
+            // Draw X-axis labels (hours) - show every 3rd hour
+            const numPoints = hourlyTimes.length;
+            const stepX = chartWidth / (numPoints > 1 ? (numPoints - 1) : 1); // Avoid division by zero for single point
+            const barWidth = chartType === 'bar' ? (chartWidth / numPoints) * 0.8 : 0; // For bars, calculate width
+
+            hourlyTimes.forEach((timeStr, i) => {
+                const hour = new Date(timeStr).getHours();
+                if (i % 3 === 0) { // Label every 3 hours
+                    const x = chartXStart + i * stepX;
+                    ctx.fillText(`${String(hour).padStart(2, '0')}:00`, x, chartYStart + chartHeight + 15);
+                }
+            });
+
+            // Draw Y-axis labels (values)
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle'; // Set text baseline for accurate vertical alignment
+
+            // Iterate using the calculated yAxisIncrement
+            for (let value = minValue; value <= maxValue; value += yAxisIncrement) {
+                const y = chartYStart + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+                ctx.fillText(`${value.toFixed(0)} ${unit}`, paddingLeft - 10, y); // Always whole numbers for temp/wind
+            }
+            // Ensure max value is always labeled if it's not exactly on an increment
+            if (maxValue % yAxisIncrement !== 0 || maxValue === 0) { // Check if max is not perfectly on an increment OR if max is 0 (special case for small ranges)
+                if (maxValue !== Math.floor(maxValue / yAxisIncrement) * yAxisIncrement) { // Prevent duplicate 0 if minValue is 0 and increment is 20
+                     const y = chartYStart + chartHeight - ((maxValue - minValue) / valueRange) * chartHeight;
+                     ctx.fillText(`${maxValue.toFixed(0)} ${unit}`, paddingLeft - 10, y);
+                }
+            }
+
+
+            // --- Store data points and draw graph based on chartType ---
+            chartDataPoints[canvasId] = chartDataPoints[canvasId] || {};
+            chartDataPoints[canvasId].points = []; // Clear previous points for this canvas
+
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2; // For line graphs
+
+            if (chartType === 'bar') {
+                hourlyValues.forEach((value, i) => {
+                    if (value === null || value === undefined) {
+                        return; // Skip drawing bar for missing data point
+                    }
+                    const x = chartXStart + (i * (chartWidth / numPoints)) + ((chartWidth / numPoints) - barWidth) / 2;
+                    const barHeight = ((value - minValue) / valueRange) * chartHeight;
+                    const y = chartYStart + chartHeight - barHeight;
+                    ctx.fillRect(x, y, barWidth, barHeight);
+
+                    // Store point data for tooltip
+                    chartDataPoints[canvasId].points.push({
+                        x: x,
+                        y: y,
+                        width: barWidth, // Store width for bar hit testing
+                        height: barHeight, // Store height for bar hit testing
+                        value: value,
+                        time: hourlyTimes[i],
+                        type: 'bar',
+                        dataKey: dataKey // Store the data key for accurate tooltip unit/label
+                    });
+                });
+            } else if (chartType === 'line') {
+                ctx.beginPath();
+                hourlyValues.forEach((value, i) => {
+                    const x = chartXStart + i * stepX;
+                    const y = chartYStart + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+
+                    // Store point data for tooltip, even if null to manage segments
+                    if (value !== null && value !== undefined) {
+                         chartDataPoints[canvasId].points.push({
+                            x: x,
+                            y: y,
+                            radius: 3, // Used for hit testing tolerance
+                            value: value,
+                            time: hourlyTimes[i],
+                            type: 'line',
+                            dataKey: dataKey // Store the data key for accurate tooltip unit/label
+                        });
+                    } else {
+                        // Mark as null point for line break
+                        chartDataPoints[canvasId].points.push(null);
+                    }
+
+                    if (value === null || value === undefined) {
+                        // For line graphs, if a point is null, break the line and start a new one
+                        ctx.stroke(); // Finish current segment
+                        ctx.beginPath(); // Start a new path
+                        return;
+                    }
+
+                    if (i === 0 || hourlyValues[i-1] === null || hourlyValues[i-1] === undefined) { // Start a new segment if first point or previous was null
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke(); // Draw the final line segment
+            }
+        }
+
+        // --- Function to draw a daily chart on a canvas ---
+        // This function now accepts an optional second data set for min/max on one chart, and a chartType
+        function drawDailyChart(canvasId, dailyTimes, dailyValuesPrimary, label, unitPrimary, colorPrimary, chartType = 'line', dailyValuesSecondary = null, unitSecondary = null, colorSecondary = null, dataKeyPrimary, dailyDataKeySecondary = '') { // Added default '' for dailyDataKeySecondary
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error(`Canvas element with ID '${canvasId}' not found.`);
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            console.log(`Drawing daily chart: ${canvasId} (Type: ${chartType})`);
+            console.log(`Canvas dimensions for ${canvasId}: Width=${canvas.width}, Height=${canvas.height}`);
+
+            const paddingLeft = 60;
+            const paddingRight = 20;
+            const paddingTop = 20;
+            const paddingBottom = 45;
+
+            const chartXStart = paddingLeft;
+            const chartYStart = paddingTop;
+            const chartWidth = canvas.width - paddingLeft - paddingRight;
+            const chartHeight = canvas.height - paddingTop - paddingBottom;
+
+            // Combine values for overall min/max calculation if secondary data is present
+            let allValues = dailyValuesPrimary ? dailyValuesPrimary.filter(val => val !== null && val !== undefined) : [];
+            if (dailyValuesSecondary) {
+                allValues = allValues.concat(dailyValuesSecondary.filter(val => val !== null && val !== undefined));
+            }
+
+            if (allValues.length === 0) {
+                ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
+                ctx.font = '14px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+                ctx.textAlign = 'center';
+                ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
+                chartDataPoints[canvasId] = { points: [], dateRanges: [] }; // Ensure empty object
+                return;
+            }
+
+            let minValue = Math.min(...allValues);
+            let maxValue = Math.max(...allValues);
+
+            let yAxisIncrement = 1; // Default increment
+
+            // Apply standardized max values and ensure min is not above zero for non-temp
+            if (dataKeyPrimary.includes('temperature') || (dailyDataKeySecondary && dailyDataKeySecondary.includes('temperature'))) { // Applies to temperature_2m_max, temperature_2m_min
+                // Round max up to nearest 5
+                maxValue = Math.ceil(maxValue / 5) * 5;
+                // Round min down to nearest 5 for negative, else 0
+                if (minValue < 0) {
+                    minValue = Math.floor(minValue / 5) * 5;
+                } else {
+                    minValue = 0;
+                }
+                yAxisIncrement = 5; // Changed to 5 for temperature
+            } else if (dataKeyPrimary.includes('wind_gusts') || (dailyDataKeySecondary && dailyDataKeySecondary.includes('wind_gusts'))) { // Applies to wind_gusts_10m_max
+                // Define increments based on max value for better scaling
+                if (maxValue <= 20) {
+                    yAxisIncrement = 5;
+                    maxValue = Math.ceil(maxValue / 5) * 5;
+                } else if (maxValue <= 50) {
+                    yAxisIncrement = 10;
+                    maxValue = Math.ceil(maxValue / 10) * 10;
+                } else {
+                    yAxisIncrement = 25;
+                    maxValue = Math.ceil(maxValue / 25) * 25;
+                }
+                minValue = 0; // Wind speed cannot be negative
+            } else if (dataKeyPrimary.includes('rain')) { // Applies to rain_sum
+                maxValue = Math.ceil(maxValue / 5) * 5; // Round up to nearest 5 for daily rain
+                minValue = 0;
+                yAxisIncrement = 5; // Increment by 5 for daily rain
+            } else if (dataKeyPrimary.includes('snowfall')) { // Applies to snowfall_sum
+                maxValue = Math.ceil(maxValue / 2) * 2; // Round up to nearest 2
+                minValue = 0;
+                yAxisIncrement = 2; // Increment by 2
+            }
+
+
+            if (maxValue === minValue) {
+                maxValue = minValue + 1;
+            }
+            const valueRange = maxValue - minValue;
+
+            // Draw axes
+            ctx.beginPath();
+            ctx.strokeStyle = '#8B8C89'; /* Updated to new palette (gray) */
+            ctx.lineWidth = 1;
+            ctx.moveTo(chartXStart, chartYStart + chartHeight);
+            ctx.lineTo(chartXStart + chartWidth, chartYStart + chartHeight);
+            ctx.moveTo(chartXStart, chartYStart);
+            ctx.lineTo(chartXStart, chartYStart + chartHeight);
+            ctx.stroke();
+
+            ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
+            ctx.font = '12px "Gill Sans", sans-serif'; /* Updated font to Gill Sans */
+            ctx.textAlign = 'center';
+
+            // Draw X-axis labels (dates)
+            const numPoints = dailyTimes.length;
+            const stepX = chartWidth / (numPoints > 1 ? (numPoints - 1) : 1);
+            const barWidth = chartType === 'bar' ? (chartWidth / numPoints) * 0.8 : 0; // Bar width calculation
+
+            // Store date ranges for click detection
+            chartDataPoints[canvasId] = chartDataPoints[canvasId] || {};
+            chartDataPoints[canvasId].dateRanges = [];
+
+            dailyTimes.forEach((timeStr, i) => {
+                const date = new Date(timeStr);
+                // Use helper function to format date for X-axis labels
+                const formattedDate = formatToDDMM(timeStr); // Changed to DD/MM
+
+                const xCenter = chartXStart + i * stepX;
+                chartDataPoints[canvasId].dateRanges.push({
+                    time: timeStr,
+                    xMin: xCenter - (stepX / 2),
+                    xMax: xCenter + (stepX / 2)
+                });
+
+                // Label every 5th day, or first/last if few points
+                if (numPoints <= 7 || i === 0 || i === numPoints - 1 || (i > 0 && i < numPoints -1 && i % 5 === 0)) {
+                    ctx.fillText(formattedDate, chartXStart + i * stepX, chartYStart + chartHeight + 15);
+                }
+            });
+
+
+            // Draw Y-axis labels (values)
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            // Iterate using the calculated yAxisIncrement
+            for (let value = minValue; value <= maxValue; value += yAxisIncrement) {
+                const y = chartYStart + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+                ctx.fillText(`${value.toFixed(0)} ${unitPrimary}`, paddingLeft - 10, y); // Always whole numbers for temp/wind
+            }
+            // Ensure max value is always labeled if it's not exactly on an increment
+            if (maxValue % yAxisIncrement !== 0 || maxValue === 0) { // Check if max is not perfectly on an increment OR if max is 0 (special case for small ranges)
+                if (maxValue !== Math.floor(maxValue / yAxisIncrement) * yAxisIncrement) { // Prevent duplicate 0 if minValue is 0 and increment is 20
+                     const y = chartYStart + chartHeight - ((maxValue - minValue) / valueRange) * chartHeight;
+                     ctx.fillText(`${maxValue.toFixed(0)} ${unitPrimary}`, paddingLeft - 10, y);
+                }
+            }
+
+
+            // --- Store data points and draw graph based on chartType ---
+            chartDataPoints[canvasId] = chartDataPoints[canvasId] || {};
+            chartDataPoints[canvasId].points = []; // Clear previous points for this canvas
+
+            // Function to draw a single dataset (either primary or secondary)
+            const drawDataSet = (values, color, dataKey) => {
+                ctx.fillStyle = color;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+
+                if (chartType === 'bar') {
+                    values.forEach((value, i) => {
+                        if (value === null || value === undefined) {
+                            return;
+                        }
+                        const x = chartXStart + (i * (chartWidth / numPoints)) + ((chartWidth / numPoints) - barWidth) / 2;
+                        const barHeight = ((value - minValue) / valueRange) * chartHeight;
+                        const y = chartYStart + chartHeight - barHeight;
+                        ctx.fillRect(x, y, barWidth, barHeight);
+
+                        chartDataPoints[canvasId].points.push({
+                            x: x,
+                            y: y,
+                            width: barWidth,
+                            height: barHeight,
+                            value: value,
+                            time: dailyTimes[i],
+                            type: 'bar',
+                            dataKey: dataKey
+                        });
+                    });
+                } else if (chartType === 'line') {
+                    ctx.beginPath();
+                    values.forEach((value, i) => {
+                        const x = chartXStart + i * stepX;
+                        const y = chartYStart + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+
+                        if (value !== null && value !== undefined) {
+                            chartDataPoints[canvasId].points.push({
+                                x: x,
+                                y: y,
+                                radius: 3,
+                                value: value,
+                                time: dailyTimes[i],
+                                type: 'line',
+                                dataKey: dataKey
+                            });
+                        }
+
+                        if (value === null || value === undefined) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            return;
+                        }
+
+                        if (i === 0 || values[i-1] === null || values[i-1] === undefined) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    ctx.stroke();
+                }
+            };
+
+            // Draw primary dataset
+            drawDataSet(dailyValuesPrimary, colorPrimary, dataKeyPrimary);
+
+            // Draw secondary dataset if provided (e.g., for min temperature)
+            if (dailyValuesSecondary && colorSecondary) {
+                drawDataSet(dailyValuesSecondary, colorSecondary, dailyDataKeySecondary);
+            }
+        }
+
+
+        // --- Display Weather Results (for the selected date's daily summary) ---
+        function displayWeatherResults(data) {
+            weatherResultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                    <p class="font-semibold">No daily summary data available for the selected date and location.</p>
+                    <p>Open-Meteo provides historical data up to a certain point in the past. Please check the date range.</p>
+                </div>`; // Modified message for historical only
+                return;
+            }
+
+            const daily = data.daily;
+            const dailyUnits = data.daily_units;
+
+            // Daily Summary for the selected date (always index 0 as we fetch for a single day)
+            const date = daily.time[0];
+            const maxTemp = getDailyValue(daily, 'temperature_2m_max', 0);
+            const minTemp = getDailyValue(daily, 'temperature_2m_min', 0);
+            const rainSum = getDailyValue(daily, 'rain_sum', 0);
+            const snowfallSum = getDailyValue(daily, 'snowfall_sum', 0);
+            const windGustsMax = getDailyValue(daily, 'wind_gusts_10m_max', 0);
+
+            let content = `
+                <div class="weather-card">
+                    <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">Weather for ${formatToDDMMYY(date)}</h3>
+                    <p class="text-lg"><span class="font-semibold">Max Temperature:</span> ${maxTemp != null ? maxTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_max : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Min Temperature:</span> ${minTemp != null ? minTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_min : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Rainfall:</span> ${rainSum != null ? rainSum.toFixed(1) + ' ' + dailyUnits.rain_sum : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Snowfall:</span> ${snowfallSum != null ? snowfallSum.toFixed(1) + ' ' + dailyUnits.snowfall_sum : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Max Wind Gusts:</span> ${windGustsMax != null ? windGustsMax.toFixed(1) + ' ' + dailyUnits.wind_gusts_10m_max : 'N/A'}</p>
+                    <p class="text-sm mt-2" style="color: #8B8C89;">Data provided by Open-Meteo.com</p>
+                </div>
+            `;
+            weatherResultsDiv.innerHTML = content;
+        }
+
+        // --- Handle click on daily charts to update selected date ---
+        function onDailyChartClick(e) {
+            const canvas = e.target;
+            const mousePos = getMousePos(canvas, e);
+            const dateRanges = chartDataPoints[canvas.id] ? chartDataPoints[canvas.id].dateRanges : null;
+
+            if (!dateRanges) return;
+
+            for (const range of dateRanges) {
+                // Check if the click X coordinate falls within the date's zone
+                if (mousePos.x >= range.xMin && mousePos.x <= range.xMax) {
+                    const clickedDate = range.time.split('T')[0]; // Extract YYYY-MM-DD
+                    
+                    // Update the date input and global selectedDate
+                    weatherDateInput.value = clickedDate;
+                    selectedDate = clickedDate;
+                    selectedDateDisplay.textContent = formatToDDMMYY(clickedDate);
+                    
+                    // Re-fetch data for the newly selected date
+                    fetchWeather();
+                    return; // Exit after finding the date
+                }
+            }
+        }
+
+
+        // Add event listeners to main chart navigation buttons
+        mainChartNav.addEventListener('click', (event) => {
+            const targetButton = event.target.closest('.chart-nav-button');
+            if (targetButton && targetButton.dataset.hourlyChart && targetButton.dataset.dailyChart) {
+                toggleChartsByParameter(targetButton.dataset.hourlyChart, targetButton.dataset.dailyChart);
+            }
+        });
+
+        // Function to set up click listeners for daily charts
+        function setupDailyChartClickListeners() {
+            const dailyCanvasIds = [
+                'dailyTemperatureChart', 'dailyRainChart', 'dailySnowfallChart', 'dailyWindGustsChart'
+            ];
+            dailyCanvasIds.forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    canvas.addEventListener('click', onDailyChartClick);
+                }
+            });
+        }
+
+
+        // --- Main function to toggle both hourly and daily charts based on parameter ---
+        function toggleChartsByParameter(hourlyChartIdToShow, dailyChartIdToShow) {
+            // --- Update active button styling ---
+            document.querySelectorAll('#mainChartNav .chart-nav-button').forEach(button => {
+                // Check if the current button's data-hourly-chart or data-daily-chart matches
+                // either the hourly chart ID or the daily chart ID we intend to show.
+                // This ensures that the same button controls both its hourly and daily counterpart.
+                if (button.dataset.hourlyChart === hourlyChartIdToShow || button.dataset.dailyChart === dailyChartIdToShow) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+
+            // --- Handle Hourly Charts ---
+            const allHourlyChartContainers = hourlyChartsPanelContainer.querySelectorAll('.chart-container');
+            allHourlyCh
