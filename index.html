@@ -25,7 +25,7 @@
     <style>
         /* Custom styles for the map container */
         #map {
-            height: 450px; /* Increased height for the map */
+            height: 550px; /* Increased height for the map to 550px */
             width: 100%;
             border-radius: 0.5rem; /* Rounded corners */
             cursor: default !important; /* Change map cursor to default arrow */
@@ -44,7 +44,7 @@
         /* Basic styling for the body and containers */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Light gray background */
+            background-color: #E7ECEF; /* Updated to new palette */
             display: flex;
             flex-direction: column; /* Stack main container and charts container vertically */
             justify-content: flex-start;
@@ -56,7 +56,7 @@
         .container,
         .chart-panel-container,
         #chartsWrapper { /* Apply common styling to main white blocks */
-            background-color: #ffffff;
+            background-color: #FFFFFF; /* Kept white for strong contrast */
             border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             width: 100%; /* Ensure they take full width within their parent */
@@ -75,6 +75,7 @@
             margin-bottom: 15px; /* Space between main container and charts panel */
             padding-top: 15px; /* Adjusting top padding for consistency with content */
             padding-bottom: 15px; /* Adjusting bottom padding */
+            /* Removed border: 2px solid #274C77; */
         }
 
         /* Specific styles for chart-panel-container (chart nav and individual chart panels) */
@@ -108,7 +109,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.9); /* Kept white for clarity */
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
@@ -116,28 +117,30 @@
         }
         /* Styles for weather result cards */
         .weather-card {
-            background-color: #e2e8f0; /* Lighter grey for cards */
+            background-color: #E7ECEF; /* Updated to match selected location card */
             padding: 12px; /* Reduced padding */
             border-radius: 0.75rem;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             margin-bottom: 5px; /* Adjusted margin */
+            border: 2px solid #274C77; /* Added border to match selected location card */
         }
         .weather-card h3 {
             font-weight: 600; /* Semi-bold */
-            color: #334155; /* Darker text */
+            color: #274C77; /* Updated to new palette (dark blue) */
         }
         .weather-card p {
-            color: #475569; /* Medium gray text */
+            color: #274C77; /* Updated to new palette (dark blue for better contrast) */
         }
         /* Styles for individual chart containers within the charts panel */
         .chart-container {
-            background-color: #f8fafc; /* Very light grey for chart background */
+            background-color: #FFFFFF; /* Kept white for charts background */
             padding: 8px; /* Adjusted padding */
             border-radius: 0.75rem;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             margin-top: 5px; /* Adjusted margin */
             display: none; /* Hidden by default, will be toggled by JS */
             width: 100%; /* Fill the width of its parent */
+            border: 2px solid #274C77; /* Added 2px border to chart containers */
         }
         .chart-container canvas {
             display: block; /* Ensures canvas doesn't have extra space below it */
@@ -146,24 +149,35 @@
         }
         /* Style for chart navigation buttons */
         .chart-nav-button {
-            @apply px-3 py-1.5 text-sm rounded-md font-semibold transition-colors duration-200; /* Smaller buttons */
-            @apply bg-blue-500 text-white hover:bg-blue-600;
-            /* Add this for the indicator for selected view */
-            border-bottom: 2px solid transparent; /* Default transparent border */
+            /* Adjusted padding to be symmetrical after setting min-height/min-width */
+            @apply px-4 py-2 text-xl font-bold transition-colors duration-200; /* Updated padding to py-2 (8px) and px-4 (16px) */
+            background-color: #E7ECEF; /* Updated to new palette (lightest) */
+            color: #274C77; /* Updated to new palette (dark blue) */
+            border: 2px solid #274C77; /* Added 2px solid border to buttons */
+            min-width: 200px; /* Explicit minimum width */
+            min-height: 80px; /* Explicit minimum height */
+            display: flex; /* Use flexbox to center content vertically and horizontally */
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px; /* Explicitly set border-radius to 20px */
+        }
+        /* Removed hover background color change */
+        .chart-nav-button:hover {
+            /* Kept other hover effects if any, only removed background-color */
         }
         .chart-nav-button.active {
-            @apply bg-blue-700;
-            border-color: #f8fafc; /* White border for active button */
+            background-color: #A3CEF1; /* Updated to new palette (light blue for active) */
+            border-color: #274C77; /* Updated to new palette (dark blue) */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Stronger shadow */
         }
         /* Style for the main chart navigation wrapper to increase gap */
         #mainChartNav {
-            gap: 20px; /* Increased gap between buttons to 20px (Tailwind 'gap-5') */
+            gap: 60px; /* Increased gap between buttons to 60px */
         }
         /* Custom tooltip style */
         #chart-tooltip {
             position: absolute;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(39, 76, 119, 0.9); /* Updated to new palette (dark blue with opacity) */
             color: white;
             padding: 5px 8px;
             border-radius: 4px;
@@ -213,46 +227,46 @@
     <div class="container">
         <!-- Left Panel: Date Selection and Map -->
         <div class="left-panel flex flex-col gap-3">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">Select Location & Date</h2>
-
             <!-- Map Container -->
             <div id="map" class="shadow-lg"></div>
-            <p class="text-sm text-gray-600 mt-1 text-center">Click on the map to select a location.</p>
+            <!-- Removed 'Click on the map to select a location.' text -->
         </div>
 
         <!-- Right Panel: Weather Information Display -->
         <div class="right-panel flex flex-col gap-3">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">Weather Information</h2>
+            <h2 class="text-xl font-bold" style="color: #274C77;">Weather Information</h2>
 
             <!-- Date Input - MOVED HERE -->
             <div class="mb-2">
-                <label for="weatherDate" class="block text-gray-700 text-sm font-medium mb-1">Select Date:</label>
-                <input type="date" id="weatherDate" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="weatherDate" class="block text-sm font-medium" style="color: #274C77;">Select Date:</label>
+                <!-- Modified: Added border-width to ensure 2px border -->
+                <input type="date" id="weatherDate" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
             </div>
 
             <!-- Selected Location Display -->
-            <div class="mb-2 p-3 bg-blue-100 rounded-lg shadow-sm">
-                <p class="text-blue-700 font-medium">Selected Location:</p>
-                <p id="selectedLocation" class="text-blue-900">No location selected</p>
-                <p class="text-blue-700 font-medium mt-1">Selected Date:</p>
-                <p id="selectedDateDisplay" class="text-blue-900">No date selected</p>
+            <!-- Modified: Changed inline style to explicitly set 2px border -->
+            <div class="mb-2 p-3 rounded-lg shadow-sm" style="background-color: #E7ECEF; border: 2px solid #274C77;">
+                <p class="font-medium" style="color: #274C77;">Selected Location:</p>
+                <p id="selectedLocation" class="font-bold" style="color: #274C77;">No location selected</p>
+                <p class="font-medium mt-1" style="color: #274C77;">Selected Date:</p>
+                <p id="selectedDateDisplay" class="font-bold" style="color: #274C77;">No date selected</p>
             </div>
 
             <!-- Weather Results Display (Daily Summary for selected date) -->
             <div id="weatherResults" class="flex flex-col gap-2">
-                <p class="text-gray-600 text-center">Click a location on the map and select a date to see weather details.</p>
+                <p class="text-center" style="color: #8B8C89;">Click a location on the map and select a date to see weather details.</p>
             </div>
 
             <!-- Loading Indicator -->
             <div id="loadingIndicator" class="loading-indicator">
-                <p class="text-lg font-semibold text-gray-800">Loading weather data...</p>
+                <p class="text-lg font-semibold" style="color: #274C77;">Loading weather data...</p>
             </div>
         </div>
     </div>
 
     <!-- Main Chart Navigation (unified for both hourly and daily charts) -->
     <div class="chart-panel-container">
-        <div class="flex flex-wrap justify-center" id="mainChartNav"> <!-- Removed gap from here, moved to #mainChartNav -->
+        <div class="flex flex-wrap justify-center" id="mainChartNav">
             <button class="chart-nav-button active" data-hourly-chart="temperatureChartContainer" data-daily-chart="dailyTemperatureChartContainer">Temperature</button>
             <button class="chart-nav-button" data-hourly-chart="rainChartContainer" data-daily-chart="dailyRainChartContainer">Rainfall</button>
             <button class="chart-nav-button" data-hourly-chart="snowfallChartContainer" data-daily-chart="dailySnowfallChartContainer">Snowfall</button>
@@ -264,43 +278,43 @@
     <div id="chartsWrapper">
         <!-- Hourly Charts Panel Container -->
         <div id="hourlyChartsPanelContainer" class="chart-panel-container">
-            <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Hourly Data for Selected Date</h3>
+            <h3 class="text-xl font-bold text-center mb-1" style="color: #274C77;">Hourly Data Charts</h3>
             <div id="temperatureChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Hourly Temperature (°C)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Hourly Temperature (°C)</h4>
                 <canvas id="temperatureChart"></canvas>
             </div>
             <div id="rainChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Rainfall (mm)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Hourly Rainfall (mm)</h4>
                 <canvas id="rainChart"></canvas>
             </div>
             <div id="snowfallChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Snowfall (cm)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Hourly Snowfall (cm)</h4>
                 <canvas id="snowfallChart"></canvas>
             </div>
             <div id="windGustsChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Wind Gusts (km/h)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Hourly Wind Gusts (km/h)</h4>
                 <canvas id="windGustsChart"></canvas>
             </div>
         </div>
 
         <!-- Daily Historical Charts Panel Container -->
         <div id="dailyHistoryChartsPanelContainer" class="chart-panel-container">
-            <h3 class="text-xl font-bold text-gray-800 text-center mb-2">30 Day Historical Daily Values Charts</h3>
+            <h3 class="text-xl font-bold text-center mb-1" style="color: #274C77;">30 Day Historical Data Charts</h3>
             <div id="dailyTemperatureChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Daily Temperature (Min/Max, °C)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Temperature (Min/Max, °C)</h4>
                 <canvas id="dailyTemperatureChart"></canvas>
-                <p class="text-xs text-gray-500 mt-1 text-center">Blue: Max Temp, Red: Min Temp</p>
+                <!-- Removed the specific text describing min/max colors -->
             </div>
             <div id="dailyRainChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Daily Rainfall Sum (mm)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Rainfall Sum (mm)</h4>
                 <canvas id="dailyRainChart"></canvas>
             </div>
             <div id="dailySnowfallChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Daily Snowfall Sum (cm)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Snowfall Sum (cm)</h4>
                 <canvas id="dailySnowfallChart"></canvas>
             </div>
             <div id="dailyWindGustsChartContainer" class="chart-container">
-                <h4 class="text-md font-semibold text-gray-700 mb-1">Daily Max Wind Gusts (km/h)</h4>
+                <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Max Wind Gusts (km/h)</h4>
                 <canvas id="dailyWindGustsChart"></canvas>
             </div>
         </div>
@@ -318,6 +332,7 @@
         // Initialize Firebase variables (provided by the Canvas environment)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // Fix: Corrected typo from __initialAuthToken to __initial_auth_token
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
         // Map variables
@@ -352,13 +367,30 @@
         let chartDataPoints = {}; // { 'canvasId': [{x, y, value, time, type, dataKey}, ...] }
         let tooltipDiv = null; // Global reference to the tooltip div
 
+        // --- Helper Function for DD/MM/YY Date Formatting ---
+        function formatToDDMMYY(dateString) {
+            const dateObj = new Date(dateString);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = String(dateObj.getFullYear()).slice(-2); // Get last two digits of the year
+            return `${day}/${month}/${year}`;
+        }
+
+        // --- Helper Function for DD/MM Date Formatting (for chart X-axis) ---
+        function formatToDDMM(dateString) {
+            const dateObj = new Date(dateString);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            return `${day}/${month}`;
+        }
+
         // --- Tooltip Functions ---
         function createTooltip() {
             tooltipDiv = document.createElement('div');
             tooltipDiv.id = 'chart-tooltip';
             tooltipDiv.style.cssText = `
                 position: absolute;
-                background-color: rgba(0, 0, 0, 0.8);
+                background-color: rgba(39, 76, 119, 0.9); /* Updated to new palette (dark blue with opacity) */
                 color: white;
                 padding: 5px 8px;
                 border-radius: 4px;
@@ -444,7 +476,8 @@
                             const firstPoint = hoveredPoints[0];
                             let displayDateTime;
                             if (canvas.id.startsWith('daily')) {
-                                displayDateTime = new Date(firstPoint.time).toLocaleDateString();
+                                // Use the helper function for daily chart tooltips
+                                displayDateTime = formatToDDMM(firstPoint.time); // Changed to DD/MM
                             } else {
                                 displayDateTime = new Date(firstPoint.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                             }
@@ -556,7 +589,8 @@
         // --- Date Input Handling ---
         weatherDateInput.addEventListener('change', (event) => {
             selectedDate = event.target.value;
-            selectedDateDisplay.textContent = selectedDate || 'No date selected';
+            // Use helper function to format date for display
+            selectedDateDisplay.textContent = selectedDate ? formatToDDMMYY(selectedDate) : 'No date selected';
             // Attempt to fetch weather if both date and location are selected
             fetchWeather();
         });
@@ -570,14 +604,17 @@
             const formattedDate = `${APACFullYear}-${mm}-${dd}`;
             weatherDateInput.value = formattedDate;
             selectedDate = formattedDate;
-            selectedDateDisplay.textContent = formattedDate;
+            // Use helper function to format date for display
+            selectedDateDisplay.textContent = formatToDDMMYY(formattedDate);
         }
 
         // --- Fetch Weather Data from Open-Meteo ---
         async function fetchWeather() {
             if (!selectedLat || !selectedLon || !selectedDate) {
                 // Not enough information to fetch weather
-                weatherResultsDiv.innerHTML = '<p class="text-gray-600 text-center">Please select both a location on the map and a date.</p>';
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                    <p class="font-semibold">Please select both a location on the map and a date.</p>
+                </div>`;
                 hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
                 return;
@@ -665,7 +702,7 @@
 
             } catch (error) {
                 console.error("Error fetching weather data:", error);
-                weatherResultsDiv.innerHTML = `<div class="p-4 bg-red-100 text-red-800 rounded-lg shadow-sm">
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
                     <p class="font-semibold">Error fetching weather data:</p>
                     <p>${error.message}. Please try again or select a different date/location.</p>
                 </div>`;
@@ -718,7 +755,7 @@
             const filteredValues = hourlyValues ? hourlyValues.filter(val => val !== null && val !== undefined) : [];
 
             if (filteredValues.length === 0) {
-                ctx.fillStyle = '#6b7280';
+                ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
                 ctx.font = '14px Inter';
                 ctx.textAlign = 'center';
                 ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
@@ -746,10 +783,18 @@
                 }
                 yAxisIncrement = 5; // Changed to 5 for temperature
             } else if (dataKey.includes('wind_gusts')) { // Applies to wind_gusts_10m
-                // Round max up to nearest 20
-                maxValue = Math.ceil(maxValue / 20) * 20;
+                // Define increments based on max value for better scaling
+                if (maxValue <= 20) {
+                    yAxisIncrement = 5;
+                    maxValue = Math.ceil(maxValue / 5) * 5;
+                } else if (maxValue <= 50) {
+                    yAxisIncrement = 10;
+                    maxValue = Math.ceil(maxValue / 10) * 10;
+                } else {
+                    yAxisIncrement = 25;
+                    maxValue = Math.ceil(maxValue / 25) * 25;
+                }
                 minValue = 0; // Wind speed cannot be negative
-                yAxisIncrement = 20; // Increment by 20 for wind gusts
             } else if (dataKey.includes('rain')) { // Applies to rain
                 maxValue = Math.ceil(maxValue / 2) * 2; // Round up to nearest 2
                 minValue = 0;
@@ -770,7 +815,7 @@
 
             // Draw x-axis (time) and y-axis (values)
             ctx.beginPath();
-            ctx.strokeStyle = '#cbd5e1'; // Light gray for axes
+            ctx.strokeStyle = '#8B8C89'; /* Updated to new palette (gray) */
             ctx.lineWidth = 1;
             // X-axis
             ctx.moveTo(chartXStart, chartYStart + chartHeight);
@@ -780,7 +825,7 @@
             ctx.lineTo(chartXStart, chartYStart + chartHeight);
             ctx.stroke();
 
-            ctx.fillStyle = '#6b7280'; // Darker gray for labels
+            ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
             ctx.font = '12px Inter';
             ctx.textAlign = 'center';
 
@@ -884,7 +929,7 @@
 
         // --- Function to draw a daily chart on a canvas ---
         // This function now accepts an optional second data set for min/max on one chart, and a chartType
-        function drawDailyChart(canvasId, dailyTimes, dailyValuesPrimary, label, unitPrimary, colorPrimary, chartType = 'line', dailyValuesSecondary = null, unitSecondary = null, colorSecondary = null, dataKeyPrimary, dataKeySecondary) { // Added dataKeyPrimary, dataKeySecondary
+        function drawDailyChart(canvasId, dailyTimes, dailyValuesPrimary, label, unitPrimary, colorPrimary, chartType = 'line', dailyValuesSecondary = null, unitSecondary = null, colorSecondary = null, dataKeyPrimary, dailyDataKeySecondary = '') { // Added default '' for dailyDataKeySecondary
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
                 console.error(`Canvas element with ID '${canvasId}' not found.`);
@@ -916,7 +961,7 @@
             }
 
             if (allValues.length === 0) {
-                ctx.fillStyle = '#6b7280';
+                ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
                 ctx.font = '14px Inter';
                 ctx.textAlign = 'center';
                 ctx.fillText(`No ${label.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
@@ -930,7 +975,7 @@
             let yAxisIncrement = 1; // Default increment
 
             // Apply standardized max values and ensure min is not above zero for non-temp
-            if (dataKeyPrimary.includes('temperature') || (dataKeySecondary && dataKeySecondary.includes('temperature'))) { // Applies to temperature_2m_max, temperature_2m_min
+            if (dataKeyPrimary.includes('temperature') || (dailyDataKeySecondary && dailyDataKeySecondary.includes('temperature'))) { // Applies to temperature_2m_max, temperature_2m_min
                 // Round max up to nearest 5
                 maxValue = Math.ceil(maxValue / 5) * 5;
                 // Round min down to nearest 5 for negative, else 0
@@ -940,11 +985,19 @@
                     minValue = 0;
                 }
                 yAxisIncrement = 5; // Changed to 5 for temperature
-            } else if (dataKeyPrimary.includes('wind_gusts') || (dataKeySecondary && dataKeySecondary.includes('wind_gusts'))) { // Applies to wind_gusts_10m_max
-                // Round max up to nearest 20
-                maxValue = Math.ceil(maxValue / 20) * 20;
+            } else if (dataKeyPrimary.includes('wind_gusts') || (dailyDataKeySecondary && dailyDataKeySecondary.includes('wind_gusts'))) { // Applies to wind_gusts_10m_max
+                // Define increments based on max value for better scaling
+                if (maxValue <= 20) {
+                    yAxisIncrement = 5;
+                    maxValue = Math.ceil(maxValue / 5) * 5;
+                } else if (maxValue <= 50) {
+                    yAxisIncrement = 10;
+                    maxValue = Math.ceil(maxValue / 10) * 10;
+                } else {
+                    yAxisIncrement = 25;
+                    maxValue = Math.ceil(maxValue / 25) * 25;
+                }
                 minValue = 0; // Wind speed cannot be negative
-                yAxisIncrement = 20; // Increment by 20 for wind gusts
             } else if (dataKeyPrimary.includes('rain')) { // Applies to rain_sum
                 maxValue = Math.ceil(maxValue / 5) * 5; // Round up to nearest 5 for daily rain
                 minValue = 0;
@@ -963,7 +1016,7 @@
 
             // Draw axes
             ctx.beginPath();
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = '#8B8C89'; /* Updated to new palette (gray) */
             ctx.lineWidth = 1;
             ctx.moveTo(chartXStart, chartYStart + chartHeight);
             ctx.lineTo(chartXStart + chartWidth, chartYStart + chartHeight);
@@ -971,7 +1024,7 @@
             ctx.lineTo(chartXStart, chartYStart + chartHeight);
             ctx.stroke();
 
-            ctx.fillStyle = '#6b7280';
+            ctx.fillStyle = '#8B8C89'; /* Updated to new palette (gray) */
             ctx.font = '12px Inter';
             ctx.textAlign = 'center';
 
@@ -982,12 +1035,12 @@
 
             dailyTimes.forEach((timeStr, i) => {
                 const date = new Date(timeStr);
-                const day = date.getDate();
-                const month = date.getMonth() + 1; // Month is 0-indexed
+                // Use helper function to format date for X-axis labels
+                const formattedDate = formatToDDMM(timeStr); // Changed to DD/MM
 
                 // Label every 5th day, or first/last if few points
                 if (numPoints <= 7 || i === 0 || i === numPoints - 1 || (i > 0 && i < numPoints -1 && i % 5 === 0)) {
-                    ctx.fillText(`${day}/${month}`, chartXStart + i * stepX, chartYStart + chartHeight + 15);
+                    ctx.fillText(formattedDate, chartXStart + i * stepX, chartYStart + chartHeight + 15);
                 }
             });
 
@@ -1078,7 +1131,7 @@
 
             // Draw secondary dataset if provided (e.g., for min temperature)
             if (dailyValuesSecondary && colorSecondary) {
-                drawDataSet(dailyValuesSecondary, colorSecondary, dataKeySecondary);
+                drawDataSet(dailyValuesSecondary, colorSecondary, dailyDataKeySecondary);
             }
         }
 
@@ -1088,7 +1141,7 @@
             weatherResultsDiv.innerHTML = ''; // Clear previous results
 
             if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
-                weatherResultsDiv.innerHTML = `<div class="p-4 bg-yellow-100 text-yellow-800 rounded-lg shadow-sm">
+                weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
                     <p class="font-semibold">No daily summary data available for the selected date and location.</p>
                     <p>Open-Meteo provides historical data up to a certain point in the past and forecasts for the future. Please check the date range.</p>
                 </div>`;
@@ -1108,13 +1161,13 @@
 
             let content = `
                 <div class="weather-card">
-                    <h3 class="text-xl font-bold text-blue-700 mb-2">Weather for ${date}</h3>
+                    <h3 class="text-xl font-bold mb-2" style="color: #274C77;">Weather for ${formatToDDMMYY(date)}</h3>
                     <p class="text-lg"><span class="font-semibold">Max Temperature:</span> ${maxTemp != null ? maxTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_max : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Min Temperature:</span> ${minTemp != null ? minTemp.toFixed(1) + ' ' + dailyUnits.temperature_2m_min : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Rainfall:</span> ${rainSum != null ? rainSum.toFixed(1) + ' ' + dailyUnits.rain_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Snowfall:</span> ${snowfallSum != null ? snowfallSum.toFixed(1) + ' ' + dailyUnits.snowfall_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Max Wind Gusts:</span> ${windGustsMax != null ? windGustsMax.toFixed(1) + ' ' + dailyUnits.wind_gusts_10m_max : 'N/A'}</p>
-                    <p class="text-sm text-gray-500 mt-2">Data provided by Open-Meteo.com</p>
+                    <p class="text-sm mt-2" style="color: #8B8C89;">Data provided by Open-Meteo.com</p>
                 </div>
             `;
             weatherResultsDiv.innerHTML = content;
@@ -1155,28 +1208,28 @@
                         hourlyChartType = 'line';
                         hourlyLabel = 'Hourly Temperature';
                         hourlyUnit = currentHourlyUnits.temperature_2m;
-                        hourlyColor = '#3b82f6';
+                        hourlyColor = '#274C77'; /* Updated to new palette (dark blue) */
                         hourlyDataKey = 'temperature_2m';
                         break;
                     case 'rainChartContainer':
                         hourlyChartType = 'bar';
-                        hourlyLabel = 'Rainfall';
+                        hourlyLabel = 'Hourly Rainfall';
                         hourlyUnit = currentHourlyUnits.rain;
-                        hourlyColor = '#60a5fa'; // Light blue for rain bar
+                        hourlyColor = '#6096BA'; /* Updated to new palette (medium blue) */
                         hourlyDataKey = 'rain';
                         break;
                     case 'snowfallChartContainer':
                         hourlyChartType = 'bar';
-                        hourlyLabel = 'Snowfall';
+                        hourlyLabel = 'Hourly Snowfall'; // Updated here
                         hourlyUnit = currentHourlyUnits.snowfall;
-                        hourlyColor = '#93c5fd'; // Lighter blue for snow bar
+                        hourlyColor = '#A3CEF1'; /* Updated to new palette (light blue) */
                         hourlyDataKey = 'snowfall';
                         break;
                     case 'windGustsChartContainer':
                         hourlyChartType = 'bar';
-                        hourlyLabel = 'Wind Gusts';
+                        hourlyLabel = 'Hourly Wind Gusts'; // Updated here
                         hourlyUnit = currentHourlyUnits.wind_gusts_10m;
-                        hourlyColor = '#38bdf8'; // Sky blue for wind bar
+                        hourlyColor = '#6096BA'; /* Updated to new palette (medium blue) */
                         hourlyDataKey = 'wind_gusts_10m';
                         break;
                     default:
@@ -1198,14 +1251,14 @@
                         );
                     }, 200);
                 } else {
-                    console.warn(`Missing hourly data for ${hourlyLabel} (${hourlyDataKey}). Cannot draw chart.`);
+                    console.warn(`Missing hourly data for ${hourlyDataKey}. Cannot draw chart.`);
                     const canvas = document.getElementById(hourlyChartIdToShow.replace('Container', ''));
                     if (canvas) {
                         const ctx = canvas.getContext('2d');
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         canvas.width = canvas.offsetWidth;
                         canvas.height = canvas.offsetHeight;
-                        ctx.fillStyle = '#6b7280';
+                        ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
                         ctx.font = '14px Inter';
                         ctx.textAlign = 'center';
                         ctx.fillText(`No ${hourlyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
@@ -1231,38 +1284,38 @@
                 let dailyValuesSecondary = null;
                 let dailyUnitSecondary = null;
                 let dailyColorSecondary = null;
-                let dailyDataKeySecondary = null;
+                let dailyDataKeySecondary = ''; 
 
                 switch (dailyChartIdToShow) {
                     case 'dailyTemperatureChartContainer':
                         dailyLabel = 'Daily Temperature (Min/Max)';
                         dailyUnitPrimary = currentDailyHistoryUnits.temperature_2m_max;
-                        dailyColorPrimary = '#3b82f6'; // Blue for Max Temp
+                        dailyColorPrimary = '#274C77'; /* Updated to new palette (dark blue) */
                         dailyDataKeyPrimary = 'temperature_2m_max';
                         dailyChartType = 'line';
                         dailyValuesSecondary = currentDailyHistoryData.temperature_2m_min;
                         dailyUnitSecondary = currentDailyHistoryUnits.temperature_2m_min;
-                        dailyColorSecondary = '#ef4444'; // Red for Min Temp
+                        dailyColorSecondary = '#6096BA'; /* Updated to new palette (medium blue) */
                         dailyDataKeySecondary = 'temperature_2m_min';
                         break;
                     case 'dailyRainChartContainer':
                         dailyLabel = 'Daily Rainfall Sum';
                         dailyUnitPrimary = currentDailyHistoryUnits.rain_sum;
-                        dailyColorPrimary = '#60a5fa'; // Light blue for rain bar
+                        dailyColorPrimary = '#6096BA'; /* Updated to new palette (medium blue) */
                         dailyDataKeyPrimary = 'rain_sum';
                         dailyChartType = 'bar';
                         break;
                     case 'dailySnowfallChartContainer':
                         dailyLabel = 'Daily Snowfall Sum';
                         dailyUnitPrimary = currentDailyHistoryUnits.snowfall_sum;
-                        dailyColorPrimary = '#93c5fd'; // Lighter blue for snow bar
+                        dailyColorPrimary = '#A3CEF1'; /* Updated to new palette (light blue) */
                         dailyDataKeyPrimary = 'snowfall_sum';
                         dailyChartType = 'bar';
                         break;
                     case 'dailyWindGustsChartContainer':
                         dailyLabel = 'Daily Max Wind Gusts';
                         dailyUnitPrimary = currentDailyHistoryUnits.wind_gusts_10m_max;
-                        dailyColorPrimary = '#38bdf8'; // Sky blue for wind bar
+                        dailyColorPrimary = '#6096BA'; /* Updated to new palette (medium blue) */
                         dailyDataKeyPrimary = 'wind_gusts_10m_max';
                         dailyChartType = 'bar';
                         break;
@@ -1289,14 +1342,14 @@
                         );
                      }, 200);
                 } else {
-                    console.warn(`Missing daily history data for ${dailyLabel} (${dailyDataKeyPrimary}). Cannot draw chart.`);
+                    console.warn(`Missing daily history data for ${dailyDataKeyPrimary}. Cannot draw chart.`);
                     const canvas = document.getElementById(dailyChartIdToShow.replace('Container', ''));
                     if (canvas) {
                         const ctx = canvas.getContext('2d');
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         canvas.width = canvas.offsetWidth;
                         canvas.height = canvas.offsetHeight;
-                        ctx.fillStyle = '#6b7280';
+                        ctx.fillStyle = '#274C77'; /* Updated to new palette (dark blue) */
                         ctx.font = '14px Inter';
                         ctx.textAlign = 'center';
                         ctx.fillText(`No ${dailyLabel.toLowerCase()} data available`, canvas.width / 2, canvas.height / 2);
@@ -1317,11 +1370,16 @@
 
         // --- Initialize the application after all HTML and scripts are parsed ---
         document.addEventListener('DOMContentLoaded', () => {
-            initMap();
+            // These can be initialized as soon as the DOM is ready
             setDefaultDate();
             createTooltip(); // Create tooltip div once DOM is loaded
             setupChartTooltips(); // Setup tooltips once JS is ready
         });
+
+        // Initialize map on window.onload to ensure Leaflet library (L) is fully loaded
+        window.onload = () => {
+            initMap();
+        };
     </script>
 </body>
 </html>
