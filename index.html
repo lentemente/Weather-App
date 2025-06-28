@@ -583,7 +583,7 @@
 
         // --- Map Initialization ---
         function initMap() {
-            // Set up the map with a default view (e.g., Dunedin, NZ)
+            // Set up the map with a default view centered at Alexandra, NZ
             map = L.map('map');
 
             // Use CartoDB Positron for a muted greyscale style without API key requirement
@@ -596,8 +596,13 @@
             // Add a click listener to the map
             map.on('click', onMapClick);
 
-            // Set initial location to Dunedin
-            selectCity('dunedin');
+            // Set initial location to Alexandra and zoom out one level (zoom 8)
+            // Do NOT call handleLocationSelection here to avoid pre-selecting
+            map.setView([-45.2096, 169.3871], 8);
+            
+            // Do NOT set a default city in the dropdown or call handleLocationSelection here.
+            // The map will start centered at Alexandra, but without a marker or pre-loaded data.
+            // The user will explicitly select a location via map click or dropdown.
         }
 
         // Function to handle location selection (from map click or dropdown)
@@ -619,7 +624,7 @@
                 .openPopup();
 
             // Set map view to the selected location
-            map.setView([selectedLat, selectedLon], 9);
+            map.setView([selectedLat, selectedLon], map.getZoom()); // Keep current zoom
 
             // Update the display in the right panel
             selectedLocationDisplay.textContent = selectedAddress;
@@ -663,6 +668,15 @@
             // Clear existing options
             citySelect.innerHTML = '';
 
+            // Add an initial "Select a city" option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select a city from the list';
+            defaultOption.disabled = true;
+            defaultOption.selected = true; // Make it the default selected
+            citySelect.appendChild(defaultOption);
+
+
             // Add sorted options to the dropdown
             sortedCities.forEach(city => {
                 const option = document.createElement('option');
@@ -670,9 +684,6 @@
                 option.textContent = city.name;
                 citySelect.appendChild(option);
             });
-
-            // Set default selected city after populating
-            citySelect.value = 'dunedin'; // Keep Dunedin as the initial default selected city
         }
 
         // --- Date Input Handling ---
