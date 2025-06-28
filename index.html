@@ -214,7 +214,7 @@
             /* Individual chart panels inside chartsWrapper */
             #hourlyChartsPanelContainer,
             #dailyHistoryChartsPanelContainer {
-                width: 50%; /* Each takes half width of wrapper */
+                width: calc(50% + 10px); /* Each takes half width of wrapper + 10px */
                 padding: 15px; /* Keep padding for these nested panels */
                 margin-top: 0; /* Remove specific margin as gap handles it */
                 margin-bottom: 0;
@@ -236,15 +236,25 @@
         <div class="right-panel flex flex-col gap-3">
             <h2 class="text-xl font-bold" style="color: #274C77;">Weather Information</h2>
 
-            <!-- Date Input - MOVED HERE -->
+            <!-- City Selection Dropdown -->
+            <div class="mb-2">
+                <label for="citySelect" class="block text-sm font-medium" style="color: #274C77;">Select City:</label>
+                <select id="citySelect" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
+                    <option value="dunedin">Dunedin</option>
+                    <option value="alexandra">Alexandra</option>
+                    <option value="cromwell">Cromwell</option>
+                    <option value="queenstown">Queenstown</option>
+                    <option value="wanaka">Wanaka</option>
+                </select>
+            </div>
+
+            <!-- Date Input -->
             <div class="mb-2">
                 <label for="weatherDate" class="block text-sm font-medium" style="color: #274C77;">Select Date:</label>
-                <!-- Modified: Added border-width to ensure 2px border -->
                 <input type="date" id="weatherDate" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
             </div>
 
             <!-- Selected Location Display -->
-            <!-- Modified: Changed inline style to explicitly set 2px border -->
             <div class="mb-2 p-3 rounded-lg shadow-sm" style="background-color: #E7ECEF; border: 2px solid #274C77;">
                 <p class="font-medium" style="color: #274C77;">Selected Location:</p>
                 <p id="selectedLocation" class="font-bold" style="color: #274C77;">No location selected</p>
@@ -343,7 +353,17 @@
         let selectedDate = null;
         let selectedAddress = "No address available"; // Stores the reverse geocoded address
 
+        // Predefined city coordinates
+        const cities = {
+            dunedin: { lat: -45.8788, lon: 170.5028, name: "Dunedin" },
+            alexandra: { lat: -45.2096, lon: 169.3871, name: "Alexandra" },
+            cromwell: { lat: -45.0392, lon: 169.1979, name: "Cromwell" },
+            queenstown: { lat: -45.0312, lon: 168.6626, name: "Queenstown" },
+            wanaka: { lat: -44.7000, lon: 169.1333, name: "Wanaka" }
+        };
+
         // DOM elements
+        const citySelect = document.getElementById('citySelect');
         const weatherDateInput = document.getElementById('weatherDate');
         const selectedLocationDisplay = document.getElementById('selectedLocation');
         const selectedDateDisplay = document.getElementById('selectedDateDisplay');
@@ -547,7 +567,7 @@
         // --- Map Initialization ---
         function initMap() {
             // Set up the map with a default view (e.g., Dunedin, NZ)
-            map = L.map('map').setView([-45.8788, 170.5028], 9); // Centered on Dunedin, NZ, zoomed out to level 9
+            map = L.map('map');
 
             // Use CartoDB Positron for a muted greyscale style without API key requirement
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -558,26 +578,31 @@
 
             // Add a click listener to the map
             map.on('click', onMapClick);
+
+            // Set initial location to Dunedin
+            selectCity('dunedin');
         }
 
-        // Function to handle map clicks
-        async function onMapClick(e) { // Made async to await getStreetAddress
-            // Fix: Removed toFixed(2) here to use full precision coordinates for accuracy
-            selectedLat = e.latlng.lat;
-            selectedLon = e.latlng.lng;
+        // Function to handle location selection (from map click or dropdown)
+        async function handleLocationSelection(lat, lon, name = null) {
+            selectedLat = lat;
+            selectedLon = lon;
 
-            // Get the street address
-            selectedAddress = await getStreetAddress(selectedLat, selectedLon);
+            // Get the street address only if name is not provided (meaning it's a map click)
+            selectedAddress = name || await getStreetAddress(selectedLat, selectedLon);
 
             // Remove existing marker if any
             if (marker) {
                 map.removeLayer(marker);
             }
 
-            // Add a new marker at the clicked location using the precise coordinates
+            // Add a new marker at the selected location
             marker = L.marker([selectedLat, selectedLon]).addTo(map)
-                .bindPopup(`Selected Location:<br>${selectedAddress}`) // Display address in popup
+                .bindPopup(`Selected Location:<br>${selectedAddress}`)
                 .openPopup();
+
+            // Set map view to the selected location
+            map.setView([selectedLat, selectedLon], 9);
 
             // Update the display in the right panel
             selectedLocationDisplay.textContent = selectedAddress;
@@ -585,6 +610,31 @@
             // Attempt to fetch weather if both date and location are selected
             fetchWeather();
         }
+
+
+        // Function to handle map clicks
+        function onMapClick(e) {
+            handleLocationSelection(e.latlng.lat, e.latlng.lng);
+        }
+
+        // Function to select a city from the predefined list
+        async function selectCity(cityKey) {
+            const city = cities[cityKey];
+            if (city) {
+                // Update the dropdown selection
+                citySelect.value = cityKey;
+                // Use the handleLocationSelection function to update map and fetch weather
+                await handleLocationSelection(city.lat, city.lon, city.name);
+            } else {
+                console.warn("Selected city not found:", cityKey);
+            }
+        }
+
+        // Event listener for city dropdown change
+        citySelect.addEventListener('change', (event) => {
+            selectCity(event.target.value);
+        });
+
 
         // --- Date Input Handling ---
         weatherDateInput.addEventListener('change', (event) => {
@@ -613,7 +663,7 @@
             if (!selectedLat || !selectedLon || !selectedDate) {
                 // Not enough information to fetch weather
                 weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
-                    <p class="font-semibold">Please select both a location on the map and a date.</p>
+                    <p class="font-semibold">Please select both a location on the map/city dropdown and a date.</p>
                 </div>`;
                 hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
