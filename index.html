@@ -569,12 +569,39 @@
                 }
                 const data = await response.json();
                 console.log("Nominatim response:", data);
-                if (data.display_name) {
+                
+                // Extract relevant address components
+                const address = data.address;
+                let parts = [];
+
+                if (address.road) {
+                    parts.push(address.road);
+                }
+                
+                // Prioritize town, then village, then city for the locality
+                if (address.town) {
+                    parts.push(address.town);
+                } else if (address.village) { 
+                    parts.push(address.village);
+                } else if (address.city) {
+                    parts.push(address.city);
+                }
+
+                if (address.postcode) {
+                    parts.push(address.postcode);
+                }
+
+                let truncatedAddress = parts.join(', ');
+
+                if (truncatedAddress) {
+                    return truncatedAddress;
+                } else if (data.display_name) {
+                    // Fallback to the general display_name if specific components are missing
                     return data.display_name;
                 } else {
-                    // Use toFixed(2) only for display when address is not found
                     return `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)} (Address not found)`;
                 }
+
             } catch (error) {
                 console.error("Error fetching address from Nominatim:", error);
                 // Use toFixed(2) only for display when lookup fails
@@ -612,7 +639,7 @@
             selectedLat = lat;
             selectedLon = lon;
 
-            // Get the street address only if name is not provided (meaning it's a map click)
+            // Get the street address (now intelligently truncated)
             selectedAddress = name || await getStreetAddress(selectedLat, selectedLon);
 
             // Remove existing marker if any
@@ -622,14 +649,14 @@
 
             // Add a new marker at the selected location
             marker = L.marker([selectedLat, selectedLon]).addTo(map)
-                .bindPopup(`Selected Location:<br>${selectedAddress}`)
+                .bindPopup(`Selected Location:<br>${selectedAddress}`) // Use the intelligently truncated address for popup
                 .openPopup();
 
             // Set map view to the selected location
             map.setView([selectedLat, selectedLon], map.getZoom()); // Keep current zoom
 
             // Update the display in the right panel
-            selectedLocationDisplay.textContent = selectedAddress;
+            selectedLocationDisplay.textContent = selectedAddress; // Use the intelligently truncated address for text content
 
             // Attempt to fetch weather if both date and location are selected
             fetchWeather();
