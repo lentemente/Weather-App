@@ -25,7 +25,7 @@
     <style>
         /* Custom styles for the map container */
         #map {
-            height: 570px; /* Increased height for the map to 570px */
+            height: 580px; /* Increased height for the map to 580px */
             width: 100%;
             border-radius: 0.5rem; /* Rounded corners */
             cursor: default !important; /* Change map cursor to default arrow */
@@ -149,13 +149,15 @@
         }
         /* Style for chart navigation buttons */
         .chart-nav-button {
-            /* Adjusted padding to be symmetrical after setting min-height/min-width */
-            @apply px-4 py-2 text-xl font-bold transition-colors duration-200; /* Updated padding to py-2 (8px) and px-4 (16px) */
+            font-size: 20px; /* Reverted font size to 20px */
+            padding: 8px 16px; /* Reverted padding to 8px top/bottom, 16px left/right */
+            font-weight: bold;
+            transition: colors duration-200;
             background-color: #E7ECEF; /* Updated to new palette (lightest) */
             color: #274C77; /* Updated to new palette (dark blue) */
             border: 2px solid #274C77; /* Added 2px solid border to buttons */
             min-width: 200px; /* Explicit minimum width */
-            min-height: 80px; /* Explicit minimum height */
+            min-height: 60px; /* Reduced min-height to 60px */
             display: flex; /* Use flexbox to center content vertically and horizontally */
             justify-content: center;
             align-items: center;
@@ -331,7 +333,7 @@
             </div>
             <div id="dailySnowfallChartContainer" class="chart-container">
                 <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Snowfall Sum (cm)</h4>
-                <canvas id="snowfallChart"></canvas>
+                <canvas id="dailySnowfallChart"></canvas> <!-- Changed ID from 'snowfallChart' to 'dailySnowfallChart' -->
             </div>
             <div id="dailyWindGustsChartContainer" class="chart-container">
                 <h4 class="text-md font-semibold mb-1" style="color: #274C77;">Daily Max Wind Gusts (km/h)</h4>
