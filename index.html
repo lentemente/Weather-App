@@ -55,7 +55,8 @@
         }
         .container,
         .chart-panel-container,
-        #chartsWrapper { /* Apply common styling to main white blocks */
+        #chartsWrapper,
+        #overallSummarySection { /* Apply common styling to main white blocks */
             background-color: #FFFFFF; /* Kept white for strong contrast */
             border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -101,6 +102,16 @@
             background-color: transparent; /* Make wrapper background transparent */
         }
 
+        /* New: Styles for the overall summary section */
+        #overallSummarySection {
+            display: flex;
+            flex-direction: column; /* Default to column on small screens */
+            gap: 15px; /* Gap between summary cards */
+            margin-top: 15px; /* Space above this section */
+            margin-bottom: 15px; /* Space below this section */
+            padding: 1rem; /* Padding for the container itself */
+        }
+
 
         /* Style for loading indicator */
         .loading-indicator {
@@ -121,7 +132,7 @@
             padding: 12px; /* Reduced padding */
             border-radius: 0.75rem;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            margin-bottom: 5px; /* Adjusted margin */
+            /* Removed margin-bottom here as parent flexbox will handle spacing */
             border: 2px solid #274C77; /* Added border to match selected location card */
         }
         .weather-card h3 {
@@ -227,6 +238,18 @@
                 margin-top: 0; /* Remove specific margin as gap handles it */
                 margin-bottom: 0;
             }
+            /* Flex container for the summary cards */
+            #overallSummarySection {
+                flex-direction: row; /* Arrange horizontally on desktop */
+                gap: 15px; /* Space between cards */
+                /* width: 100%; <- Already handled by .container, .chart-panel-container etc. */
+            }
+            #overallSummarySection .weather-card {
+                flex: 1; /* Each card takes equal width */
+                margin-top: 0; /* Remove individual card margin if parent is flex */
+                margin-bottom: 0;
+            }
+
         }
     </style>
 </head>
@@ -236,7 +259,7 @@
         <!-- Left Panel: Date Selection and Map -->
         <div class="left-panel flex flex-col gap-3">
             <!-- Text above map -->
-            <p class="text-sm font-medium" style="color: #8B8C89; text-align: center;">Click on map to select a location</p>
+            <p class="text-sm font-medium" style="color: #8B8C89; text-align: center;">Click on the map to select a location or use the address search</p>
             <!-- Map Container -->
             <div id="map" class="shadow-lg"></div>
         </div>
@@ -245,12 +268,19 @@
         <div class="right-panel flex flex-col gap-3">
             <h2 class="text-xl font-bold" style="color: #274C77;">Weather Information</h2>
 
-            <!-- City Selection Dropdown -->
+            <!-- Address Search Box (replaces City Selection Dropdown) -->
             <div class="mb-2">
-                <label for="citySelect" class="block text-sm font-medium" style="color: #274C77;">Select Location:</label>
-                <select id="citySelect" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
-                    <!-- Options will be populated by JavaScript -->
-                </select>
+                <label for="addressSearchInput" class="block text-sm font-medium" style="color: #274C77;">Search Address:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="addressSearchInput" placeholder="Enter address or city, e.g., Dunedin"
+                           class="flex-grow p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           style="border: 2px solid #6096BA;">
+                    <button id="searchAddressButton"
+                            class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            style="background-color: #6096BA; border-radius: 0.5rem; transition: background-color 0.2s;">
+                        Search
+                    </button>
+                </div>
             </div>
 
             <!-- Date Input -->
@@ -272,9 +302,7 @@
                 <p class="text-center" style="color: #8B8C89;">Click a location on the map and select a date to see weather details.</p>
             </div>
 
-            <!-- Removed note about hourly data delay from here -->
-
-            <!-- Loading Indicator -->
+            <!-- Loading Indicator (kept close to primary results) -->
             <div id="loadingIndicator" class="loading-indicator">
                 <p class="text-lg font-semibold" style="color: #274C77;">Loading weather data...</p>
             </div>
@@ -342,6 +370,31 @@
         </div>
     </div>
 
+    <!-- New Section for 12-Month Summaries -->
+    <div id="overallSummarySection">
+        <!-- 12-Month Temperature Summary Section (replaces Rainfall Summary) -->
+        <div id="temperatureSummary" class="weather-card" style="display: none;">
+            <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Temperature Summary</h3>
+            <p class="text-lg">
+                <span class="font-semibold">Max Temperature (Past 12 Months):</span> 
+                <span id="maxTemp12Months">N/A</span> 
+                <span id="maxTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
+            </p>
+            <p class="text-lg">
+                <span class="font-semibold">Min Temperature (Past 12 Months):</span> 
+                <span id="minTemp12Months">N/A</span> 
+                <span id="minTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
+            </p>
+        </div>
+
+        <!-- 12-Month Wind Gust Summary Section -->
+        <div id="windGustSummary" class="weather-card" style="display: none;">
+            <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Wind Gust Summary</h3>
+            <p class="text-lg"><span class="font-semibold">Max Wind Gust (Past 12 Months):</span> <span id="maxGust12Months">N/A</span></p>
+            <p class="text-lg"><span class="font-semibold">Days > 100 km/h (Past 12 Months):</span> <span id="daysOver100Kmh">N/A</span></p>
+        </div>
+    </div>
+
 
     <!-- The Tooltip div will be created dynamically by JavaScript -->
 
@@ -365,29 +418,25 @@
         let selectedDate = null;
         let selectedAddress = "No address available"; // Stores the reverse geocoded address
 
-        // Predefined city coordinates
-        const cities = {
-            alexandra: { lat: -45.2096, lon: 169.3871, name: "Alexandra" },
-            cromwell: { lat: -45.0392, lon: 169.1979, name: "Cromwell" },
-            dunedin: { lat: -45.8788, lon: 170.5028, name: "Dunedin" },
-            ettrick: { lat: -45.5900, lon: 169.3620, name: "Ettrick" },
-            glenorchy: { lat: -44.8322, lon: 168.3842, name: "Glenorchy" },
-            hawea: { lat: -44.6000, lon: 169.2333, name: "Hawea" },
-            mosgiel: { lat: -45.875, lon: 170.3486, name: "Mosgiel" },
-            outram: { lat: -45.8667, lon: 170.2167, name: "Outram" },
-            queenstown: { lat: -45.0312, lon: 168.6626, name: "Queenstown" },
-            roxburgh: { lat: -45.5458, lon: 169.3172, name: "Roxburgh" },
-            wanaka: { lat: -44.7000, lon: 169.1333, name: "Wanaka" }
-        };
-
         // DOM elements
-        const citySelect = document.getElementById('citySelect');
+        const addressSearchInput = document.getElementById('addressSearchInput'); // New element
+        const searchAddressButton = document.getElementById('searchAddressButton'); // New element
         const weatherDateInput = document.getElementById('weatherDate');
         const selectedLocationDisplay = document.getElementById('selectedLocation');
         const selectedDateDisplay = document.getElementById('selectedDateDisplay');
         const weatherResultsDiv = document.getElementById('weatherResults');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const dailyChartDateRangeSpan = document.getElementById('dailyChartDateRange'); // New span for date range
+        const windGustSummary = document.getElementById('windGustSummary'); // New element for 12-month summary
+        const maxGust12Months = document.getElementById('maxGust12Months'); // Span for max gust
+        const daysOver100Kmh = document.getElementById('daysOver100Kmh'); // Span for days over 100km/h
+        // Updated: Temperature Summary DOM elements
+        const temperatureSummary = document.getElementById('temperatureSummary'); // Changed ID
+        const maxTemp12Months = document.getElementById('maxTemp12Months'); // Changed ID
+        const minTemp12Months = document.getElementById('minTemp12Months'); // Changed ID
+        const maxTemp12MonthsDate = document.getElementById('maxTemp12MonthsDate'); // New ID for max temp date
+        const minTemp12MonthsDate = document.getElementById('minTemp12MonthsDate'); // New ID for min temp date
+
 
         // Chart Panel elements
         const hourlyChartsPanelContainer = document.getElementById('hourlyChartsPanelContainer');
@@ -412,7 +461,7 @@
             const day = String(dateObj.getDate()).padStart(2, '0');
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const year = String(dateObj.getFullYear()); // Get full year for the title
-            return `${day}/${month}/${year}`;
+            return `${day}/${month}/${year}`; // Changed to DD/MM/YYYY for consistent user display
         }
 
         // --- Helper Function for DD/MM Date Formatting (for chart X-axis) ---
@@ -553,14 +602,81 @@
             });
         }
 
+        // --- Helper function to construct a concise address string ---
+        function constructConciseAddress(address) {
+            let parts = [];
 
-        // --- Reverse Geocoding Function ---
+            // Street and house number
+            let streetAndNumber = '';
+            if (address.house_number) {
+                streetAndNumber += address.house_number + ' ';
+            }
+            if (address.road) {
+                streetAndNumber += address.road;
+            }
+            if (streetAndNumber.trim()) {
+                parts.push(streetAndNumber.trim());
+            }
+
+            // Town/City (prioritize town, then village, then city)
+            if (address.town) {
+                parts.push(address.town);
+            } else if (address.village) {
+                parts.push(address.village);
+            } else if (address.city) {
+                parts.push(address.city);
+            }
+
+            // Postcode
+            if (address.postcode) {
+                parts.push(address.postcode);
+            }
+
+            return parts.join(', ');
+        }
+
+        // --- Geocoding Function (Forward Geocoding - Address to Lat/Lon) ---
+        async function geocodeAddress(addressQuery) {
+            // Bounding box for Otago, New Zealand (South, West, North, East)
+            // Approx: South: -46.6, West: 168.0, North: -44.0, East: 171.0
+            // Using a slightly larger box to ensure coverage
+            const otagoBoundingBox = '167.5,-46.8,171.5,-43.8'; // W,S,E,N
+
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1&addressdetails=1&viewbox=${otagoBoundingBox}&bounded=1`; // Added viewbox and bounded=1
+            try {
+                const response = await fetch(nominatimUrl, {
+                    headers: {
+                        'User-Agent': 'WeatherApp/1.0 (your-email@example.com)' // Replace with actual app name and email
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`Geocoding HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const firstResult = data[0];
+                    const truncatedAddress = constructConciseAddress(firstResult.address); // Use the new helper
+                    return {
+                        lat: parseFloat(firstResult.lat),
+                        lon: parseFloat(firstResult.lon),
+                        // Always return the truncated address, fallback to lat/lon if truncation fails
+                        displayName: truncatedAddress || `Lat: ${parseFloat(firstResult.lat).toFixed(2)}, Lon: ${parseFloat(firstResult.lon).toFixed(2)} (Address Details Missing)`
+                    };
+                } else {
+                    return null; // No results found
+                }
+            } catch (error) {
+                console.error("Error fetching address from Nominatim:", error);
+                return null;
+            }
+        }
+
+        // --- Reverse Geocoding Function (Lat/Lon to Address) ---
         async function getStreetAddress(lat, lon) {
             const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=18&addressdetails=1`;
             try {
                 const response = await fetch(nominatimUrl, {
                     headers: {
-                        // Nominatim requests a custom User-Agent
                         'User-Agent': 'WeatherApp/1.0 (your-email@example.com)' // Replace with actual app name and email
                     }
                 });
@@ -570,34 +686,9 @@
                 const data = await response.json();
                 console.log("Nominatim response:", data);
                 
-                // Extract relevant address components
-                const address = data.address;
-                let parts = [];
-
-                if (address.road) {
-                    parts.push(address.road);
-                }
-                
-                // Prioritize town, then village, then city for the locality
-                if (address.town) {
-                    parts.push(address.town);
-                } else if (address.village) { 
-                    parts.push(address.village);
-                } else if (address.city) {
-                    parts.push(address.city);
-                }
-
-                if (address.postcode) {
-                    parts.push(address.postcode);
-                }
-
-                let truncatedAddress = parts.join(', ');
-
-                if (truncatedAddress) {
-                    return truncatedAddress;
-                } else if (data.display_name) {
-                    // Fallback to the general display_name if specific components are missing
-                    return data.display_name;
+                if (data && data.address) {
+                    const truncatedAddress = constructConciseAddress(data.address); // Use the new helper
+                    return truncatedAddress || `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)} (Address not found)`;
                 } else {
                     return `Lat: ${lat.toFixed(2)}, Lon: ${lon.toFixed(2)} (Address not found)`;
                 }
@@ -615,7 +706,7 @@
             // Set up the map with a default view centered at Alexandra, NZ
             map = L.map('map');
 
-            // Use CartoDB Positron for a muted greyscale style without API key requirement
+            // Reverted to CartoDB Positron due to potential LINZ API key expiry/rate limits
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
@@ -626,21 +717,18 @@
             map.on('click', onMapClick);
 
             // Set initial location to Alexandra and zoom out one level (zoom 8)
-            // Do NOT call handleLocationSelection here to avoid pre-selecting
             map.setView([-45.2096, 169.3871], 8);
-            
-            // Do NOT set a default city in the dropdown or call handleLocationSelection here.
-            // The map will start centered at Alexandra, but without a marker or pre-loaded data.
-            // The user will explicitly select a location via map click or dropdown.
         }
 
-        // Function to handle location selection (from map click or dropdown)
+        // Function to handle location selection (from map click or address search)
         async function handleLocationSelection(lat, lon, name = null) {
             selectedLat = lat;
             selectedLon = lon;
 
-            // Get the street address (now intelligently truncated)
-            selectedAddress = name || await getStreetAddress(selectedLat, selectedLon);
+            // Always use getStreetAddress for reverse geocoding to ensure consistent formatting,
+            // even if a 'name' was passed from forward geocoding. This ensures map click
+            // and search results produce the same concise address format.
+            selectedAddress = await getStreetAddress(selectedLat, selectedLon);
 
             // Remove existing marker if any
             if (marker) {
@@ -668,52 +756,39 @@
             handleLocationSelection(e.latlng.lat, e.latlng.lng);
         }
 
-        // Function to select a city from the predefined list
-        async function selectCity(cityKey) {
-            const city = cities[cityKey];
-            if (city) {
-                // Update the dropdown selection
-                citySelect.value = cityKey;
-                // Use the handleLocationSelection function to update map and fetch weather
-                await handleLocationSelection(city.lat, city.lon, city.name);
-            } else {
-                console.warn("Selected city not found:", cityKey);
-            }
-        }
+        // --- Event listener for address search button ---
+        searchAddressButton.addEventListener('click', async () => {
+            const addressQuery = addressSearchInput.value.trim();
+            if (addressQuery) {
+                loadingIndicator.style.display = 'block'; // Show loading
+                const result = await geocodeAddress(addressQuery);
+                loadingIndicator.style.display = 'none'; // Hide loading
 
-        // Event listener for city dropdown change
-        citySelect.addEventListener('change', (event) => {
-            selectCity(event.target.value);
+                if (result) {
+                    // Pass the truncated displayName from geocodeAddress to handleLocationSelection
+                    await handleLocationSelection(result.lat, result.lon, result.displayName);
+                } else {
+                    weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                        <p class="font-semibold">Location not found within Otago.</p>
+                        <p>Please try a different address or click on the map.</p>
+                    </div>`;
+                    selectedLocationDisplay.textContent = 'Location not found (Otago)';
+                    // Hide charts and summaries if no location is found
+                    document.getElementById('chartsWrapper').style.display = 'none';
+                    hourlyChartsPanelContainer.style.display = 'none';
+                    dailyHistoryChartsPanelContainer.style.display = 'none';
+                    windGustSummary.style.display = 'none';
+                    temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+                }
+            } else {
+                 weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
+                    <p class="font-semibold">Please enter an address to search.</p>
+                </div>`;
+                windGustSummary.style.display = 'none';
+                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+            }
         });
 
-        // Function to populate and sort the city dropdown
-        function populateCityDropdown() {
-            // Convert the cities object into an array of objects for sorting
-            const sortedCities = Object.keys(cities).map(key => ({
-                key: key,
-                name: cities[key].name
-            })).sort((a, b) => a.name.localeCompare(b.name));
-
-            // Clear existing options
-            citySelect.innerHTML = '';
-
-            // Add an initial "Select a city" option
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'Select a location from the list'; // Updated text here
-            defaultOption.disabled = true;
-            defaultOption.selected = true; // Make it the default selected
-            citySelect.appendChild(defaultOption);
-
-
-            // Add sorted options to the dropdown
-            sortedCities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city.key;
-                option.textContent = city.name;
-                citySelect.appendChild(option);
-            });
-        }
 
         // --- Date Input Handling ---
         weatherDateInput.addEventListener('change', (event) => {
@@ -787,21 +862,25 @@
             if (!selectedLat || !selectedLon || !selectedDate) {
                 // Not enough information to fetch weather
                 weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
-                    <p class="font-semibold">Please select both a location on the map/city dropdown and a date.</p>
+                    <p class="font-semibold">Please select a location using the map or search box, and a date.</p>
                 </div>`;
                 hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
                 dailyChartDateRangeSpan.textContent = ''; // Clear date range
+                windGustSummary.style.display = 'none';
+                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
                 return;
             }
 
             // Show loading indicator
             loadingIndicator.style.display = 'block';
             weatherResultsDiv.innerHTML = ''; // Clear previous results
-            // Initially hide chart panels, will be shown if data is successful
+            // Initially hide chart panels and summaries, will be shown if data is successful
             hourlyChartsPanelContainer.style.display = 'none';
             dailyHistoryChartsPanelContainer.style.display = 'none';
             dailyChartDateRangeSpan.textContent = ''; // Clear date range
+            windGustSummary.style.display = 'none';
+            temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
 
 
             const hourlyVariables = 'temperature_2m,rain,snowfall,wind_gusts_10m';
@@ -826,25 +905,48 @@
             // Always use the archive API for 30-day historical data
             historicalDailyApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&daily=${dailyVariables}&timezone=Pacific/Auckland&start_date=${historicalStartDate}&end_date=${historicalEndDate}`;
 
+            // New: API URL for 12 months (approx 365 days) of daily wind gust data
+            const twelveMonthsEndDate = new Date();
+            twelveMonthsEndDate.setDate(twelveMonthsEndDate.getDate() - 5); // 5-day delay for recent data
+            const twelveMonthsStartDate = new Date(twelveMonthsEndDate);
+            twelveMonthsStartDate.setFullYear(twelveMonthsStartDate.getFullYear() - 1); // Go back 1 year
+
+            const twelveMonthsApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&start_date=${twelveMonthsStartDate.toISOString().split('T')[0]}&end_date=${twelveMonthsEndDate.toISOString().split('T')[0]}&daily=wind_gusts_10m_max&timezone=Pacific/Auckland&models=era5`; // Use era5 for long history
+
+            // Updated: API URL for 12 months (approx 365 days) of daily temperature data, including time for dates
+            const twelveMonthsTempApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&start_date=${twelveMonthsStartDate.toISOString().split('T')[0]}&end_date=${twelveMonthsEndDate.toISOString().split('T')[0]}&daily=temperature_2m_max,temperature_2m_min&timezone=Pacific/Auckland&models=era5`; // Use era5 for long history
+
 
             console.log("Fetching current day weather data from:", currentDayApiUrl);
             console.log("Fetching 30-day historical daily data from:", historicalDailyApiUrl);
+            console.log("Fetching 12-month historical wind data from:", twelveMonthsApiUrl);
+            console.log("Fetching 12-month historical temperature data from:", twelveMonthsTempApiUrl); // Updated: Log new temp data fetch
 
 
             try {
-                const [currentDayResponse, historicalDailyResponse] = await Promise.all([
+                const [currentDayResponse, historicalDailyResponse, twelveMonthsResponse, twelveMonthsTempResponse] = await Promise.all([
                     fetch(currentDayApiUrl),
-                    fetch(historicalDailyApiUrl)
+                    fetch(historicalDailyApiUrl),
+                    fetch(twelveMonthsApiUrl),
+                    fetch(twelveMonthsTempApiUrl) // Updated fetch for 12 months temp data
                 ]);
 
                 if (!currentDayResponse.ok) throw new Error(`Current day data HTTP error! status: ${currentDayResponse.status}`);
                 if (!historicalDailyResponse.ok) throw new Error(`30-day historical data HTTP error! status: ${historicalDailyResponse.status}`);
+                if (!twelveMonthsResponse.ok) throw new Error(`12-month historical wind data HTTP error! status: ${twelveMonthsResponse.status}`);
+                if (!twelveMonthsTempResponse.ok) throw new Error(`12-month historical temperature data HTTP error! status: ${twelveMonthsTempResponse.status}`); // Updated: Error check for new fetch
+
 
                 const currentDayData = await currentDayResponse.json();
                 const historicalDailyData = await historicalDailyResponse.json();
+                const twelveMonthsData = await twelveMonthsResponse.json();
+                const twelveMonthsTempData = await twelveMonthsTempResponse.json(); // Updated: Parse new data
+
 
                 console.log("Current day data received:", currentDayData);
                 console.log("30-day historical daily data received:", historicalDailyData);
+                console.log("12-month historical wind data received:", twelveMonthsData);
+                console.log("12-month historical temperature data received:", twelveMonthsTempData); // Updated: Log new data
 
 
                 // Filter hourly data to only include the selected date
@@ -882,6 +984,9 @@
 
 
                 displayWeatherResults(currentDayData); // Use currentDayData for the main summary
+                processAndDisplayWindGustSummary(twelveMonthsData);
+                processAndDisplayTemperatureSummary(twelveMonthsTempData); // Updated: Process and display 12-month temperature summary
+
 
                 // Update the 30-day historical chart title with the actual date range
                 if (currentDailyHistoryData && currentDailyHistoryData.time && currentDailyHistoryData.time.length > 0) {
@@ -919,8 +1024,85 @@
                 hourlyChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
                 dailyChartDateRangeSpan.textContent = ''; // Clear date range
+                windGustSummary.style.display = 'none';
+                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary on error
             } finally {
                 loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Updated function: Process and display 12-month temperature summary
+        function processAndDisplayTemperatureSummary(data) {
+            let overallMaxTemp = -Infinity;
+            let overallMinTemp = Infinity;
+            let maxTempDate = 'N/A';
+            let minTempDate = 'N/A';
+            let unit = '°C'; // Default unit
+
+            if (data && data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_min && data.daily.time && data.daily_units && data.daily_units.temperature_2m_max) {
+                const maxTemps = data.daily.temperature_2m_max;
+                const minTemps = data.daily.temperature_2m_min;
+                const times = data.daily.time; // Get the dates array
+                unit = data.daily_units.temperature_2m_max; // Unit should be the same for min/max temp
+
+                for (let i = 0; i < maxTemps.length; i++) {
+                    const currentMax = maxTemps[i];
+                    const currentMin = minTemps[i];
+
+                    if (currentMax !== null && currentMax !== undefined) {
+                        if (currentMax > overallMaxTemp) {
+                            overallMaxTemp = currentMax;
+                            maxTempDate = formatToDDMMYY(times[i]); // Store the date
+                        }
+                    }
+                    if (currentMin !== null && currentMin !== undefined) {
+                        if (currentMin < overallMinTemp) {
+                            overallMinTemp = currentMin;
+                            minTempDate = formatToDDMMYY(times[i]); // Store the date
+                        }
+                    }
+                }
+                maxTemp12Months.textContent = `${overallMaxTemp.toFixed(1)} ${unit}`;
+                maxTemp12MonthsDate.textContent = maxTempDate !== 'N/A' ? `(${maxTempDate})` : ''; // Display date
+                minTemp12Months.textContent = `${overallMinTemp.toFixed(1)} ${unit}`;
+                minTemp12MonthsDate.textContent = minTempDate !== 'N/A' ? `(${minTempDate})` : ''; // Display date
+                temperatureSummary.style.display = 'block'; // Show the temperature summary card
+            } else {
+                maxTemp12Months.textContent = 'N/A';
+                maxTemp12MonthsDate.textContent = '';
+                minTemp12Months.textContent = 'N/A';
+                minTemp12MonthsDate.textContent = '';
+                temperatureSummary.style.display = 'none'; // Hide if no data
+            }
+        }
+
+        // Existing function: Process and display 12-month wind gust summary
+        function processAndDisplayWindGustSummary(data) {
+            let overallMaxGust = 0;
+            let countDaysOver100Kmh = 0;
+            let unit = 'km/h'; // Default unit, will be updated from data if available
+
+            if (data && data.daily && data.daily.wind_gusts_10m_max && data.daily_units && data.daily_units.wind_gusts_10m_max) {
+                const windGusts = data.daily.wind_gusts_10m_max;
+                unit = data.daily_units.wind_gusts_10m_max; // Get actual unit
+
+                for (const gust of windGusts) {
+                    if (gust !== null && gust !== undefined) {
+                        if (gust > overallMaxGust) {
+                            overallMaxGust = gust;
+                        }
+                        if (gust > 100) {
+                            countDaysOver100Kmh++;
+                        }
+                    }
+                }
+                maxGust12Months.textContent = `${overallMaxGust.toFixed(1)} ${unit}`;
+                daysOver100Kmh.textContent = `${countDaysOver100Kmh} days`;
+                windGustSummary.style.display = 'block'; // Show the summary card
+            } else {
+                maxGust12Months.textContent = 'N/A';
+                daysOver100Kmh.textContent = 'N/A';
+                windGustSummary.style.display = 'none'; // Hide if no data
             }
         }
 
@@ -1122,13 +1304,6 @@
                         chartDataPoints[canvasId].points.push(null);
                     }
 
-                    if (value === null || value === undefined) {
-                        // For line graphs, if a point is null, break the line and start a new one
-                        ctx.stroke(); // Finish current segment
-                        ctx.beginPath(); // Start a new path
-                        return;
-                    }
-
                     if (i === 0 || hourlyValues[i-1] === null || hourlyValues[i-1] === undefined) { // Start a new segment if first point or previous was null
                         ctx.moveTo(x, y);
                     } else {
@@ -1141,7 +1316,7 @@
 
         // --- Function to draw a daily chart on a canvas ---
         // This function now accepts an optional second data set for min/max on one chart, and a chartType
-        function drawDailyChart(canvasId, dailyTimes, dailyValuesPrimary, label, unitPrimary, colorPrimary, chartType = 'line', dailyValuesSecondary = null, unitSecondary = null, colorSecondary = null, dataKeyPrimary, dailyDataKeySecondary = '') { // Added default '' for dailyDataKeySecondary
+        function drawDailyChart(canvasId, dailyTimes, dailyValuesPrimary, label, unitPrimary, colorPrimary, chartType = 'bar', dailyValuesSecondary = null, unitSecondary = null, colorSecondary = null, dataKeyPrimary, dailyDataKeySecondary = '') { // Added default '' for dailyDataKeySecondary
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
                 console.error(`Canvas element with ID '${canvasId}' not found.`);
@@ -1646,7 +1821,7 @@
         // --- Initialize the application after all HTML and scripts are parsed ---
         document.addEventListener('DOMContentLoaded', () => {
             // These can be initialized as soon as the DOM is ready
-            populateCityDropdown(); // Populate and sort the dropdown
+            // Removed populateCityDropdown(); as it's no longer needed
             setDefaultDate();
             createTooltip(); // Create tooltip div once DOM is loaded
             setupChartTooltips(); // Setup tooltips once JS is ready
