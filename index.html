@@ -55,13 +55,12 @@
         }
         .container,
         .chart-panel-container,
-        #chartsWrapper,
-        #overallSummarySection { /* Apply common styling to main white blocks */
+        #chartsWrapper { /* Apply common styling to main white blocks */
             background-color: #FFFFFF; /* Kept white for strong contrast */
             border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             width: 100%; /* Ensure they take full width within their parent */
-            max-width: 1536px; /* Max width equivalent to Tailwind's max-w-screen-2xl */
+            max-width: 2000px; /* UPDATED: Max width to 2000px */
             margin-left: auto;
             margin-right: auto; /* Center the blocks */
             padding: 1rem; /* Default padding for all main white blocks */
@@ -76,7 +75,14 @@
             margin-bottom: 15px; /* Space between main container and charts panel */
             padding-top: 15px; /* Adjusting top padding for consistency with content */
             padding-bottom: 15px; /* Adjusting bottom padding */
-            /* Removed border: 2px solid #274C77; */
+        }
+
+        /* New: Wrapper for weather details and summary sections */
+        .info-and-summary-wrapper {
+            display: flex;
+            flex-direction: column; /* Stack vertically on small screens */
+            gap: 15px; /* Gap between weather details and summary */
+            width: 100%; /* Take full width of parent */
         }
 
         /* Specific styles for chart-panel-container (chart nav and individual chart panels) */
@@ -102,14 +108,19 @@
             background-color: transparent; /* Make wrapper background transparent */
         }
 
-        /* New: Styles for the overall summary section */
+        /* Styles for the overall summary section (now inside info-and-summary-wrapper) */
         #overallSummarySection {
-            display: flex;
-            flex-direction: column; /* Default to column on small screens */
-            gap: 15px; /* Gap between summary cards */
-            margin-top: 15px; /* Space above this section */
-            margin-bottom: 15px; /* Space below this section */
+            background-color: #FFFFFF; /* Kept white for strong contrast */
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             padding: 1rem; /* Padding for the container itself */
+            display: flex;
+            flex-direction: column; /* Stack summary cards vertically on small screens */
+            gap: 15px; /* Gap between summary cards */
+            margin-top: 0; /* Remove specific margin as parent container manages it */
+            margin-bottom: 0; /* Remove specific margin as parent container manages it */
+            width: 100%; /* Take full width of its parent */
+            box-sizing: border-box;
         }
 
 
@@ -132,7 +143,6 @@
             padding: 12px; /* Reduced padding */
             border-radius: 0.75rem;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            /* Removed margin-bottom here as parent flexbox will handle spacing */
             border: 2px solid #274C77; /* Added border to match selected location card */
         }
         .weather-card h3 {
@@ -210,14 +220,33 @@
             }
             /* Make left and right panels within the container take equal width */
             .left-panel {
-                flex-grow: 2; /* Map section twice wider */
-                /* Reset padding from default p-4 to match new container padding */
+                flex: 1 1 50%; /* Map section takes half width */
                 padding: 0; /* Remove internal padding from panels as parent .container has it */
             }
-            .right-panel {
-                flex-grow: 1; /* Weather info section */
+            /* New: Wrapper for weather details and summary sections */
+            .info-and-summary-wrapper {
+                flex: 1 1 50%; /* Allow it to take available space (the other half) */
+                flex-direction: row; /* Arrange side-by-side on larger screens */
+                gap: 20px; /* Gap between weather details and summary */
+            }
+            /* Weather details panel (formerly right-panel) */
+            .weather-details-panel {
+                flex: 1 1 50%; /* Take equal width within info-and-summary-wrapper */
                 padding: 0; /* Remove internal padding from panels as parent .container has it */
             }
+            /* Overall summary section */
+            #overallSummarySection {
+                flex: 1 1 50%; /* Take equal width within info-and-summary-wrapper */
+                flex-direction: column; /* Stack summary cards vertically within this column */
+                margin-top: 0; /* Reset margin for desktop layout */
+                margin-bottom: 0; /* Reset margin for desktop layout */
+            }
+            /* Individual weather cards within summary section */
+            #overallSummarySection .weather-card {
+                flex: none; /* Don't grow, let content define width */
+                width: 100%; /* Take full width of its parent column */
+            }
+
             /* Specific padding for .chart-panel-container and #chartsWrapper on desktop */
             .chart-panel-container {
                 padding: 20px; /* Apply general padding for horizontal and vertical */
@@ -238,18 +267,6 @@
                 margin-top: 0; /* Remove specific margin as gap handles it */
                 margin-bottom: 0;
             }
-            /* Flex container for the summary cards */
-            #overallSummarySection {
-                flex-direction: row; /* Arrange horizontally on desktop */
-                gap: 15px; /* Space between cards */
-                /* width: 100%; <- Already handled by .container, .chart-panel-container etc. */
-            }
-            #overallSummarySection .weather-card {
-                flex: 1; /* Each card takes equal width */
-                margin-top: 0; /* Remove individual card margin if parent is flex */
-                margin-bottom: 0;
-            }
-
         }
     </style>
 </head>
@@ -264,61 +281,77 @@
             <div id="map" class="shadow-lg"></div>
         </div>
 
-        <!-- Right Panel: Weather Information Display -->
-        <div class="right-panel flex flex-col gap-3">
-            <h2 class="text-xl font-bold" style="color: #274C77;">Weather Information</h2>
+        <!-- New: Wrapper for Weather Information and 12-Month Summaries -->
+        <div class="info-and-summary-wrapper">
+            <!-- Weather Details Panel (formerly right-panel) -->
+            <div class="weather-details-panel flex flex-col gap-3">
+                <h2 class="text-xl font-bold" style="color: #274C77;">Weather Information</h2>
 
-            <!-- Address Search Box (replaces City Selection Dropdown) -->
-            <div class="mb-2">
-                <label for="addressSearchInput" class="block text-sm font-medium" style="color: #274C77;">Search Address:</label>
-                <div class="flex gap-2">
-                    <input type="text" id="addressSearchInput" placeholder="Enter address or city, e.g., Dunedin"
-                           class="flex-grow p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           style="border: 2px solid #6096BA;">
-                    <button id="searchAddressButton"
-                            class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            style="background-color: #6096BA; border-radius: 0.5rem; transition: background-color 0.2s;">
-                        Search
-                    </button>
+                <!-- Address Search Box (replaces City Selection Dropdown) -->
+                <div class="mb-2">
+                    <label for="addressSearchInput" class="block text-sm font-medium" style="color: #274C77;">Search Address:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="addressSearchInput" placeholder="Enter address or city, e.g., Dunedin"
+                               class="flex-grow p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               style="border: 2px solid #6096BA;">
+                        <button id="searchAddressButton"
+                                class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style="background-color: #6096BA; border-radius: 0.5rem; transition: background-color 0.2s;">
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Input -->
+                <div class="mb-2">
+                    <label for="weatherDate" class="block text-sm font-medium" style="color: #274C77;">Select Date:</label>
+                    <input type="date" id="weatherDate" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
+                </div>
+
+                <!-- Selected Location Display -->
+                <div class="mb-2 p-3 rounded-lg shadow-sm" style="background-color: #E7ECEF; border: 2px solid #274C77;">
+                    <p class="font-medium" style="color: #274C77;">Selected Location:</p>
+                    <p id="selectedLocation" class="font-bold" style="color: #274C77;">No location selected</p>
+                    <p class="font-medium mt-1" style="color: #274C77;">Selected Date:</p>
+                    <p id="selectedDateDisplay" class="font-bold" style="color: #274C77;">No date selected</p>
+                </div>
+
+                <!-- Weather Results Display (Daily Summary for selected date) -->
+                <div id="weatherResults" class="flex flex-col gap-2">
+                    <p class="text-center" style="color: #8B8C89;">Click a location on the map and select a date to see weather details.</p>
+                </div>
+
+                <!-- Loading Indicator (kept close to primary results) -->
+                <div id="loadingIndicator" class="loading-indicator">
+                    <p class="text-lg font-semibold" style="color: #274C77;">Loading weather data...</p>
                 </div>
             </div>
 
-            <!-- Date Input -->
-            <div class="mb-2">
-                <label for="weatherDate" class="block text-sm font-medium" style="color: #274C77;">Select Date:</label>
-                <input type="date" id="weatherDate" class="w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="border: 2px solid #6096BA;">
-            </div>
+            <!-- 12-Month Summaries Section (now a peer to weather-details-panel) -->
+            <div id="overallSummarySection">
+                <!-- 12-Month Temperature Summary Section -->
+                <div id="temperatureSummary" class="weather-card">
+                    <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Temperature Summary</h3>
+                    <p class="text-lg">
+                        <span class="font-semibold">Max Temperature (Past 12 Months):</span> 
+                        <span id="maxTemp12Months">N/A</span> 
+                        <span id="maxTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
+                    </p>
+                    <p class="text-lg">
+                        <span class="font-semibold">Min Temperature (Past 12 Months):</span> 
+                        <span id="minTemp12Months">N/A</span> 
+                        <span id="minTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
+                    </p>
+                </div>
 
-            <!-- Selected Location Display -->
-            <div class="mb-2 p-3 rounded-lg shadow-sm" style="background-color: #E7ECEF; border: 2px solid #274C77;">
-                <p class="font-medium" style="color: #274C77;">Selected Location:</p>
-                <p id="selectedLocation" class="font-bold" style="color: #274C77;">No location selected</p>
-                <p class="font-medium mt-1" style="color: #274C77;">Selected Date:</p>
-                <p id="selectedDateDisplay" class="font-bold" style="color: #274C77;">No date selected</p>
-            </div>
-
-            <!-- Weather Results Display (Daily Summary for selected date) -->
-            <div id="weatherResults" class="flex flex-col gap-2">
-                <p class="text-center" style="color: #8B8C89;">Click a location on the map and select a date to see weather details.</p>
-            </div>
-
-            <!-- Loading Indicator (kept close to primary results) -->
-            <div id="loadingIndicator" class="loading-indicator">
-                <p class="text-lg font-semibold" style="color: #274C77;">Loading weather data...</p>
+                <!-- 12-Month Wind Gust Summary Section -->
+                <div id="windGustSummary" class="weather-card">
+                    <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Wind Gust Summary</h3>
+                    <p class="text-lg"><span class="font-semibold">Max Wind Gust (Past 12 Months):</span> <span id="maxGust12Months">N/A</span></p>
+                    <p class="text-lg"><span class="font-semibold">Days > 100 km/h (Past 12 Months):</span> <span id="daysOver100Kmh">N/A</span></p>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Main Chart Navigation (unified for both hourly and daily charts) -->
-    <div class="chart-panel-container">
-        <div class="flex flex-wrap justify-center" id="mainChartNav">
-            <button class="chart-nav-button active" data-hourly-chart="temperatureChartContainer" data-daily-chart="dailyTemperatureChartContainer">Temperature</button>
-            <button class="chart-nav-button" data-hourly-chart="rainChartContainer" data-daily-chart="dailyRainChartContainer">Rainfall</button>
-            <button class="chart-nav-button" data-hourly-chart="snowfallChartContainer" data-daily-chart="dailySnowfallChartContainer">Snowfall</button>
-            <button class="chart-nav-button" data-hourly-chart="windGustsChartContainer" data-daily-chart="dailyWindGustsChartContainer">Wind Gusts</button>
-        </div>
-        <!-- Note about hourly data delay - moved here -->
-        <p class="text-sm mt-2 text-center" style="color: #8B8C89;">Note: Weather observations from Open-Meteo.com have a 2-day delay in availability.</p>
     </div>
 
     <!-- Wrapper for Hourly and Daily Charts to enable side-by-side -->
@@ -370,31 +403,17 @@
         </div>
     </div>
 
-    <!-- New Section for 12-Month Summaries -->
-    <div id="overallSummarySection">
-        <!-- 12-Month Temperature Summary Section (replaces Rainfall Summary) -->
-        <div id="temperatureSummary" class="weather-card" style="display: none;">
-            <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Temperature Summary</h3>
-            <p class="text-lg">
-                <span class="font-semibold">Max Temperature (Past 12 Months):</span> 
-                <span id="maxTemp12Months">N/A</span> 
-                <span id="maxTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
-            </p>
-            <p class="text-lg">
-                <span class="font-semibold">Min Temperature (Past 12 Months):</span> 
-                <span id="minTemp12Months">N/A</span> 
-                <span id="minTemp12MonthsDate" class="text-sm italic" style="color: #8B8C89;"></span>
-            </p>
+    <!-- Main Chart Navigation (unified for both hourly and daily charts) - MOVED HERE -->
+    <div class="chart-panel-container">
+        <div class="flex flex-wrap justify-center" id="mainChartNav">
+            <button class="chart-nav-button active" data-hourly-chart="temperatureChartContainer" data-daily-chart="dailyTemperatureChartContainer">Temperature</button>
+            <button class="chart-nav-button" data-hourly-chart="rainChartContainer" data-daily-chart="dailyRainChartContainer">Rainfall</button>
+            <button class="chart-nav-button" data-hourly-chart="snowfallChartContainer" data-daily-chart="dailySnowfallChartContainer">Snowfall</button>
+            <button class="chart-nav-button" data-hourly-chart="windGustsChartContainer" data-daily-chart="dailyWindGustsChartContainer">Wind Gusts</button>
         </div>
-
-        <!-- 12-Month Wind Gust Summary Section -->
-        <div id="windGustSummary" class="weather-card" style="display: none;">
-            <h3 class="text-xl font-bold mb-2 text-center" style="color: #274C77;">12-Month Wind Gust Summary</h3>
-            <p class="text-lg"><span class="font-semibold">Max Wind Gust (Past 12 Months):</span> <span id="maxGust12Months">N/A</span></p>
-            <p class="text-lg"><span class="font-semibold">Days > 100 km/h (Past 12 Months):</span> <span id="daysOver100Kmh">N/A</span></p>
-        </div>
+        <!-- Note about hourly data delay - moved here -->
+        <p class="text-sm mt-2 text-center" style="color: #8B8C89;">Note: Weather observations from Open-Meteo.com have a 2-day delay in availability.</p>
     </div>
-
 
     <!-- The Tooltip div will be created dynamically by JavaScript -->
 
@@ -496,7 +515,7 @@
             tooltipDiv.style.left = `${x + 10}px`; // Offset to the right of cursor
             tooltipDiv.style.top = `${y + 10}px`; // Offset below cursor
             tooltipDiv.innerHTML = content; // Use innerHTML to allow for multiple lines (e.g., min/max temp)
-            tooltipDiv.style.opacity = 1;
+            tooltipDiv.style.opacity = 1; // FIX: Changed 'tooltip' to 'tooltipDiv'
         }
 
         function hideTooltip() {
@@ -777,15 +796,25 @@
                     document.getElementById('chartsWrapper').style.display = 'none';
                     hourlyChartsPanelContainer.style.display = 'none';
                     dailyHistoryChartsPanelContainer.style.display = 'none';
-                    windGustSummary.style.display = 'none';
-                    temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+                    // The summary sections are now always visible, so we only update their content to N/A
+                    maxTemp12Months.textContent = 'N/A';
+                    maxTemp12MonthsDate.textContent = '';
+                    minTemp12Months.textContent = 'N/A';
+                    minTemp12MonthsDate.textContent = '';
+                    maxGust12Months.textContent = 'N/A';
+                    daysOver100Kmh.textContent = 'N/A';
                 }
             } else {
                  weatherResultsDiv.innerHTML = `<div class="p-4 rounded-lg shadow-sm" style="background-color: #E7ECEF; color: #274C77;">
                     <p class="font-semibold">Please enter an address to search.</p>
                 </div>`;
-                windGustSummary.style.display = 'none';
-                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+                // The summary sections are now always visible, so we only update their content to N/A
+                maxTemp12Months.textContent = 'N/A';
+                maxTemp12MonthsDate.textContent = '';
+                minTemp12Months.textContent = 'N/A';
+                minTemp12MonthsDate.textContent = '';
+                maxGust12Months.textContent = 'N/A';
+                daysOver100Kmh.textContent = 'N/A';
             }
         });
 
@@ -856,6 +885,19 @@
             return weatherCodeDescriptions[weatherCode] || "N/A";
         }
 
+        // --- Wind Direction Degrees to Cardinal Direction Mapping ---
+        function getCardinalDirection(degrees) {
+            if (degrees === null || degrees === undefined) {
+                return 'N/A';
+            }
+            const directions = [
+                "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+            ];
+            const index = Math.round(degrees / 22.5) % 16;
+            return directions[index];
+        }
+
 
         // --- Fetch Weather Data from Open-Meteo ---
         async function fetchWeather() {
@@ -867,8 +909,13 @@
                 hourlyChartsPanelContainer.style.display = 'none'; // Hide hourly charts
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Hide daily history charts
                 dailyChartDateRangeSpan.textContent = ''; // Clear date range
-                windGustSummary.style.display = 'none';
-                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+                // The summary sections are now always visible, so we only update their content to N/A
+                maxTemp12Months.textContent = 'N/A';
+                maxTemp12MonthsDate.textContent = '';
+                minTemp12Months.textContent = 'N/A';
+                minTemp12MonthsDate.textContent = '';
+                maxGust12Months.textContent = 'N/A';
+                daysOver100Kmh.textContent = 'N/A';
                 return;
             }
 
@@ -879,13 +926,19 @@
             hourlyChartsPanelContainer.style.display = 'none';
             dailyHistoryChartsPanelContainer.style.display = 'none';
             dailyChartDateRangeSpan.textContent = ''; // Clear date range
-            windGustSummary.style.display = 'none';
-            temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary
+            // Set summary content to "Loading..."
+            maxTemp12Months.textContent = 'Loading...';
+            maxTemp12MonthsDate.textContent = '';
+            minTemp12Months.textContent = 'Loading...';
+            minTemp12MonthsDate.textContent = '';
+            maxGust12Months.textContent = 'Loading...';
+            daysOver100Kmh.textContent = 'Loading...';
 
 
             const hourlyVariables = 'temperature_2m,rain,snowfall,wind_gusts_10m';
-            // Add weather_code to daily variables
-            const dailyVariables = 'temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum,wind_gusts_10m_max,weather_code';
+            // Add weather_code and wind_direction_10m to daily variables
+            // FIX: Changed 'wind_direction_10m' to 'winddirection_10m_dominant' as per Open-Meteo API documentation for daily data.
+            const dailyVariables = 'temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum,wind_gusts_10m_max,weather_code,winddirection_10m_dominant';
 
             // Always use the archive API for current day data (historical observations only)
             const currentDayApiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${selectedLat}&longitude=${selectedLon}&daily=${dailyVariables}&hourly=${hourlyVariables}&timezone=Pacific/Auckland&start_date=${selectedDate}&end_date=${selectedDate}`;
@@ -1024,8 +1077,13 @@
                 hourlyChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
                 dailyHistoryChartsPanelContainer.style.display = 'none'; // Ensure explicit hide
                 dailyChartDateRangeSpan.textContent = ''; // Clear date range
-                windGustSummary.style.display = 'none';
-                temperatureSummary.style.display = 'none'; // Updated: Hide temperature summary on error
+                // Set summary content to "N/A" on error
+                maxTemp12Months.textContent = 'N/A';
+                maxTemp12MonthsDate.textContent = '';
+                minTemp12Months.textContent = 'N/A';
+                minTemp12MonthsDate.textContent = '';
+                maxGust12Months.textContent = 'N/A';
+                daysOver100Kmh.textContent = 'N/A';
             } finally {
                 loadingIndicator.style.display = 'none';
             }
@@ -1066,13 +1124,13 @@
                 maxTemp12MonthsDate.textContent = maxTempDate !== 'N/A' ? `(${maxTempDate})` : ''; // Display date
                 minTemp12Months.textContent = `${overallMinTemp.toFixed(1)} ${unit}`;
                 minTemp12MonthsDate.textContent = minTempDate !== 'N/A' ? `(${minTempDate})` : ''; // Display date
-                temperatureSummary.style.display = 'block'; // Show the temperature summary card
+                // Removed display: block here as it's now always visible
             } else {
                 maxTemp12Months.textContent = 'N/A';
                 maxTemp12MonthsDate.textContent = '';
                 minTemp12Months.textContent = 'N/A';
                 minTemp12MonthsDate.textContent = '';
-                temperatureSummary.style.display = 'none'; // Hide if no data
+                // Removed display: none here as it's now always visible
             }
         }
 
@@ -1098,11 +1156,11 @@
                 }
                 maxGust12Months.textContent = `${overallMaxGust.toFixed(1)} ${unit}`;
                 daysOver100Kmh.textContent = `${countDaysOver100Kmh} days`;
-                windGustSummary.style.display = 'block'; // Show the summary card
+                // Removed display: block here as it's now always visible
             } else {
                 maxGust12Months.textContent = 'N/A';
                 daysOver100Kmh.textContent = 'N/A';
-                windGustSummary.style.display = 'none'; // Hide if no data
+                // Removed display: none here as it's now always visible
             }
         }
 
@@ -1559,6 +1617,9 @@
             const windGustsMax = getDailyValue(daily, 'wind_gusts_10m_max', 0);
             const weatherCode = getDailyValue(daily, 'weather_code', 0); // Get weather code
             const weatherCondition = getWeatherCondition(weatherCode); // Get weather condition description
+            // FIX: Changed 'wind_direction_10m' to 'winddirection_10m_dominant' for fetching.
+            const windDirectionDegrees = getDailyValue(daily, 'winddirection_10m_dominant', 0); // Get wind direction
+            const windDirectionCardinal = getCardinalDirection(windDirectionDegrees); // Convert to cardinal
 
             let content = `
                 <div class="weather-card">
@@ -1568,6 +1629,7 @@
                     <p class="text-lg"><span class="font-semibold">Rainfall:</span> ${rainSum != null ? rainSum.toFixed(1) + ' ' + dailyUnits.rain_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Snowfall:</span> ${snowfallSum != null ? snowfallSum.toFixed(1) + ' ' + dailyUnits.snowfall_sum : 'N/A'}</p>
                     <p class="text-lg"><span class="font-semibold">Max Wind Gusts:</span> ${windGustsMax != null ? windGustsMax.toFixed(1) + ' ' + dailyUnits.wind_gusts_10m_max : 'N/A'}</p>
+                    <p class="text-lg"><span class="font-semibold">Dominant Wind Direction:</span> ${windDirectionCardinal} (${windDirectionDegrees != null ? windDirectionDegrees.toFixed(0) + '°' : 'N/A'})</p>
                     <p class="text-lg"><span class="font-semibold">Weather Condition:</span> ${weatherCondition}</p>
                     <p class="text-sm mt-2" style="color: #8B8C89;">Data provided by Open-Meteo.com</p>
                 </div>
